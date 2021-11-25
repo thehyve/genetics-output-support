@@ -83,12 +83,12 @@ bq --project_id=${project_id} load --source_format=NEWLINE_DELIMITED_JSON \
 echo "inserting gwas"
 bq --project_id=${project_id} load --source_format=PARQUET \
   genetics${suffix}.sa_gwas \
-  ${path_prefix}/sa/gwas/210917/part-\*
+  ${path_prefix}/sa/gwas/part-\*
 
 echo "inserting molecular_trait"
 bq --project_id=${project_id} load --source_format=PARQUET \
   genetics${suffix}.sa_molecular_trait \
-  ${path_prefix}/sa/molecular_trait/210917/part-\*
+  ${path_prefix}/sa/molecular_trait/part-\*
 
 echo "inserting v2d coloc"
 bq --project_id=${project_id} load --source_format=NEWLINE_DELIMITED_JSON \
@@ -104,7 +104,7 @@ bq --project_id=${project_id} load --source_format=NEWLINE_DELIMITED_JSON \
 
 # Adding allUserAuth roles
 if [ ${project_id} == "open-targets-genetics" ]; then
-  bq show --format=prettyjson ${project_id}:genetics > genetcis_schema.json
+  bq show --format=prettyjson ${project_id}:genetics > genetics_schema.json
   jq --argjson groupInfo '{"role":"roles/bigquery.metadataViewer", "specialGroup": "allAuthenticatedUsers"}' '.access += [$groupInfo]' genetics_schema.json > genetics_meta.json
   jq --argjson groupInfo '{"role":"READER", "specialGroup": "allAuthenticatedUsers"}' '.access += [$groupInfo]' genetics_meta.json > genetics_new_schema.json
 
