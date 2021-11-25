@@ -36,3 +36,15 @@ bigquerydev:  ## Big Query Dev
 	export RELEASE_ID=${RELEASE_ID_DEV}; \
 	 ${ROOT_DIR_MAKEFILE_POS}/deploy_bq/create_bq.sh
 
+sync:## Sync data to production
+	@echo "==== Sync ===="
+	@echo ${GS_SYNC_FROM}
+	@echo ${RELEASE_ID_PROD}
+	${ROOT_DIR_MAKEFILE_POS}/sync_data_to_prod/sync.sh
+
+syncgs: ## Copy data from pre-release to production
+	@echo "==== Sync ===="
+	@echo ${GS_SYNC_FROM}
+	@echo ${RELEASE_ID_PROD}
+	${ROOT_DIR_MAKEFILE_POS}/sync_data_to_prod/syncgs.sh
+

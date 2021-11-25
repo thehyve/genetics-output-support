@@ -25,6 +25,8 @@ Usage:
   help             show help message
   bigquerydev      Big Query Dev
   bigqueryprod     Big Query Production
+  sync             Sync the pre-data bucket to private ftp and public ftp
+  syncgs           Copy data from pre-release to release 
 ```
 
 Every single variables is stored in the **config.tfvars**
@@ -34,6 +36,10 @@ The current POS steps are:
 ```make bigquerydev``` it generates a bigquery dataset in eu-dev
 
 ```make bigqueryprod``` it generates a bigquery dataset in production
+
+```make sync``` Synch the data from the Google Storage to EBI FTP (internal use)
+
+```make syncgs``` Synch the data from the google storage pre-release to production (internal use)
 
 # Copyright
 Copyright 2018-2021 Open Targets
