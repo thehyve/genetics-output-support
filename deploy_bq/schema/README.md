@@ -1,0 +1,1 @@
+Run the `bq_loader.sh <datarelease>` command to load the data from google storage to bigQuery
