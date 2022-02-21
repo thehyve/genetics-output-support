@@ -2,7 +2,7 @@
 
 version_tag=${RELEASE_ID}
 project_id=${PROJECT_ID}
-path_prefix="gs://${GS_SYNC_FROM}/outputs"
+path_prefix="gs://${GS_SYNC_FROM}"
 this_path=`pwd`
 
 if [ ${project_id} == "open-targets-genetics" ]; then
