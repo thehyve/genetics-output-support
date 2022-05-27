@@ -78,30 +78,15 @@ echo "block/sda/queue/scheduler = noop" >> /etc/sysfs.conf
 systemctl daemon-reload
 
 echo install clickhouse
-#echo "deb http://repo.yandex.ru/clickhouse/deb/stable/ main/" > /etc/apt/sources.list.d/clickhouse.list
 
-apt-get install apt-transport-https ca-certificates dirmngr
-apt-key adv --keyserver keyserver.ubuntu.com --recv E0C56BD4
+sudo apt-get install -y apt-transport-https ca-certificates dirmngr
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
 
-echo "deb https://repo.clickhouse.tech/deb/stable/ main/" | sudo tee \
+echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee \
     /etc/apt/sources.list.d/clickhouse.list
+sudo apt-get update
 
-apt-get update && DEBIAN_FRONTEND=noninteractive \
-    apt-get \
-    -o Dpkg::Options::="--force-confnew" \
-    --force-yes \
-    -fuy \
-    dist-upgrade && \
-    DEBIAN_FRONTEND=noninteractive \
-    apt-get \
-    -o Dpkg::Options::="--force-confnew" \
-    --force-yes \
-    -fuy \
-    install clickhouse-client=21.9.4.35 clickhouse-server=21.9.4.35 clickhouse-common-static=21.9.4.35
-
-service clickhouse-server stop
-/etc/init.d/clickhouse-server stop
-killall clickhouse-server && sleep 5
+sudo apt-get install -y clickhouse-server clickhouse-client
 
 cat <<EOF > /etc/clickhouse-server/config.xml
 <?xml version="1.0"?>
@@ -214,10 +199,9 @@ chown -R clickhouse:clickhouse dictionaries/
 systemctl enable clickhouse-server
 systemctl start clickhouse-server
 
-echo "starting clickhouse... done."
+echo "Starting clickhouse... done."
 
-
-echo "Next step is loading the data"
+echo "Start loading data."
 
 echo touching $OT_RCFILE
 echo "cluster_id=$cluster_id" > $OT_RCFILE
