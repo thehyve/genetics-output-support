@@ -20,6 +20,12 @@ check:
 help: ## show help message
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n"} /^[$$()% a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
+image: ## Create Google cloud Clickhouse image and ElasticSearch image.
+	@echo ${ROOT_DIR_MAKEFILE_POS}
+	cp ${ROOT_DIR_MAKEFILE_POS}/config.tfvars ${ROOT_DIR_MAKEFILE_POS}/terraform_create_images/deployment_context.tfvars
+	${ROOT_DIR_MAKEFILE_POS}/terraform_create_images/run.sh
+
+
 bigqueryprod:  ## Big Query Production
 	@echo $(PROJECT_ID_DEV)
 	@echo "==== Big Query DEV ===="
