@@ -12,17 +12,19 @@ apt-get update && DEBIAN_FRONTEND=noninteractive \
     -o Dpkg::Options::="--force-confnew" \
     --force-yes \
     -fuy \
-    dist-upgrade && \
+    dist-upgrade &&
     DEBIAN_FRONTEND=noninteractive \
-    apt-get \
-    -o Dpkg::Options::="--force-confnew" \
-    --force-yes \
-    -fuy \
-    install default-jdk openjdk-11-jdk-headless bzip2 unzip zip wget net-tools wget uuid-runtime python-pip python-dev libyaml-dev httpie jq gawk tmux git build-essential less silversearcher-ag dirmngr psmisc
+        apt-get \
+        -o Dpkg::Options::="--force-confnew" \
+        --force-yes \
+        -fuy \
+        install default-jdk openjdk-11-jdk-headless bzip2 unzip zip wget net-tools wget uuid-runtime python-pip python-dev libyaml-dev httpie jq gawk tmux git build-essential less silversearcher-ag dirmngr psmisc
 
 cluster_id=$(uuidgen -r)
+mem_bytes=$(awk '/MemFree/ { memv=$2/1024/1024; printf "%.0f\n", memv*1000*1000*1000 }' /proc/meminfo)
+mem_bytes80=$(awk '/MemFree/ { memv=$2/1024/1024; printf "%.0f\n", memv*1000*1000*1000*0.8 }' /proc/meminfo)
 
-cat <<EOF > /etc/security/limits.conf
+cat <<EOF >/etc/security/limits.conf
 * soft nofile 65536
 * hard nofile 65536
 * soft memlock unlimited
@@ -30,7 +32,7 @@ cat <<EOF > /etc/security/limits.conf
 
 EOF
 
-cat <<EOF > /etc/sysctl.conf
+cat <<EOF >/etc/sysctl.conf
 net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 net.ipv4.tcp_syncookies = 1
@@ -69,11 +71,8 @@ EOF
 sysctl -p
 
 # echo disable swap noop scheduler
-# swapoff -a
-# echo 'never' | tee /sys/kernel/mm/transparent_hugepage/enabled
 echo 'noop' | tee /sys/block/sda/queue/scheduler
-echo "block/sda/queue/scheduler = noop" >> /etc/sysfs.conf
-# echo "kernel/mm/transparent_hugepage/enabled = never" >> /etc/sysfs.conf
+echo "block/sda/queue/scheduler = noop" >>/etc/sysfs.conf
 
 systemctl daemon-reload
 
@@ -88,7 +87,7 @@ sudo apt-get update
 
 sudo apt-get install -y clickhouse-server clickhouse-client
 
-cat <<EOF > /etc/clickhouse-server/config.xml
+cat <<EOF >/etc/clickhouse-server/config.xml
 <?xml version="1.0"?>
 <yandex>
     <logger>
@@ -98,7 +97,7 @@ cat <<EOF > /etc/clickhouse-server/config.xml
         <size>1000M</size>
         <count>7</count>
     </logger>
-    <display_name>ot-genetics</display_name>
+    <display_name>ot-genetics-${cluster_id}</display_name>
     <http_port>8123</http_port>
     <tcp_port>9000</tcp_port>
     <interserver_http_port>9009</interserver_http_port>
@@ -107,7 +106,7 @@ cat <<EOF > /etc/clickhouse-server/config.xml
     <listen_try>0</listen_try>
     <listen_reuse_port>1</listen_reuse_port>
     <listen_backlog>256</listen_backlog>
-    <max_connections>2048</max_connections>
+    <max_connections>4096</max_connections>
     <keep_alive_timeout>60</keep_alive_timeout>
     <max_concurrent_queries>256</max_concurrent_queries>
     <max_open_files>262144</max_open_files>
@@ -135,22 +134,25 @@ cat <<EOF > /etc/clickhouse-server/config.xml
 </yandex>
 EOF
 
-cat <<EOF > /etc/clickhouse-server/users.xml
+cat <<EOF >/etc/clickhouse-server/users.xml
 <?xml version="1.0"?>
 <yandex>
-    <profiles>
+  <profiles>
         <default>
-            <max_memory_usage>30000000000</max_memory_usage>
-		    <max_bytes_before_external_sort>20000000000</max_bytes_before_external_sort>
-		    <max_bytes_before_external_group_by>20000000000</max_bytes_before_external_group_by>
+            <max_memory_usage>${mem_bytes}</max_memory_usage>
+		    <max_bytes_before_external_sort>${mem_bytes80}</max_bytes_before_external_sort>
+		    <max_bytes_before_external_group_by>${mem_bytes80}</max_bytes_before_external_group_by>
+            <lock_acquire_timeout>3000</lock_acquire_timeout>
+            <send_timeout>3000</send_timeout>
+            <receive_timeout>3000</receive_timeout>    
             <use_uncompressed_cache>1</use_uncompressed_cache>
             <load_balancing>random</load_balancing>
             <max_query_size>1048576</max_query_size>
         </default>
         <readonly>
-            <max_memory_usage>30000000000</max_memory_usage>
-		    <max_bytes_before_external_sort>20000000000</max_bytes_before_external_sort>
-		    <max_bytes_before_external_group_by>20000000000</max_bytes_before_external_group_by>
+            <max_memory_usage>${mem_bytes}</max_memory_usage>
+		    <max_bytes_before_external_sort>${mem_bytes80}</max_bytes_before_external_sort>
+		    <max_bytes_before_external_group_by>${mem_bytes80}</max_bytes_before_external_group_by>
             <use_uncompressed_cache>1</use_uncompressed_cache>
             <load_balancing>random</load_balancing>
             <readonly>128</readonly>
@@ -192,7 +194,6 @@ cat <<EOF > /etc/clickhouse-server/users.xml
 </yandex>
 EOF
 
-
 mkdir /etc/clickhouse-server/dictionaries
 chown -R clickhouse:clickhouse dictionaries/
 
@@ -204,36 +205,50 @@ echo "Starting clickhouse... done."
 echo "Start loading data."
 
 echo touching $OT_RCFILE
-echo "cluster_id=$cluster_id" > $OT_RCFILE
-date >> $OT_RCFILE
+echo "cluster_id=$cluster_id" >$OT_RCFILE
+date >>$OT_RCFILE
 
 echo "Google Storage info:"
 echo ${GS_ETL_DATASET}
 
-# Retrieve the table and database for clickhouse
-wget https://raw.githubusercontent.com/opentargets/platform-output-support/main/scripts/CH/literature.sql
-wget https://raw.githubusercontent.com/opentargets/platform-output-support/main/scripts/CH/literature_log.sql
-wget https://raw.githubusercontent.com/opentargets/platform-output-support/main/scripts/CH/w2v.sql
-wget https://raw.githubusercontent.com/opentargets/platform-output-support/main/scripts/CH/w2v_log.sql
-wget https://raw.githubusercontent.com/opentargets/platform-output-support/main/scripts/CH/aotf.sql
-wget https://raw.githubusercontent.com/opentargets/platform-output-support/main/scripts/CH/aotf_log.sql
+# Retrieve loading scripts
+sql_scripts=(
+    d2v2g_scored_log.sql
+    d2v2g_scored.sql
+    genes.sql
+    l2g_log.sql
+    l2g.sql
+    manhattan_log.sql
+    manhattan.sql
+    studies_log.sql
+    studies.sql
+    v2d_coloc_log.sql
+    v2d_coloc.sql
+    v2d_credset_log.sql
+    v2d_credset.sql
+    v2d_log.sql
+    v2d.sql
+    v2d_sa_gwas_log.sql
+    v2d_sa_gwas_log.sql
+    v2d_sa_molecular_trait_log.sql
+    v2d_sa_molecular_trait.sql
+    v2g_scored_log.sql
+    v2g_scored.sql
+    v2g_structure.sql
+    variants_log.sql
+    variants.sql
+)
 
-clickhouse-client --multiline --multiquery < aotf_log.sql
-echo "create and fill in aotf_log"
-gsutil -m cat gs://${GS_ETL_DATASET}/etl/json/AOTFClickhouse/part\* | clickhouse-client -h localhost --query="insert into ot.associations_otf_log format JSONEachRow "
-echo "create and fill in Association on the fly table"
-clickhouse-client --multiline --multiquery < aotf.sql
-echo "Association on the fly table done"
+content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/clickhouse/scripts/
 
-clickhouse-client --multiline --multiquery < literature_log.sql
-gsutil -m cat gs://${GS_ETL_DATASET}/literature/parquet/literatureIndex/part\* | clickhouse-client -h localhost --query="insert into ot.literature_log format JSONEachRow "
-clickhouse-client --multiline --multiquery < literature.sql
-echo "Literature table done"
+for scrpt in ${sql_scripts[@]}; do
+    wget $content/$scrpt
+done
 
-clickhouse-client --multiline --multiquery < w2v_log.sql
-gsutil -m cat gs://${GS_ETL_DATASET}/literature/parquet/vectors/part\* | clickhouse-client -h localhost --query="insert into ot.ml_w2v_log format JSONEachRow "
-clickhouse-client --multiline --multiquery < w2v.sql
-echo "Literature vectors done"
+wget $content/create_and_load_everything_from_scratch.sh
+
+# Load data
+time ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET} >>loading.log
 
 # This tag is waited by the POS VM in order to stop the VM and create the image of CH
-gcloud --project ${PROJECT_ID} compute instances add-tags $HOSTNAME --zone ${GC_ZONE}  --tags "startup-done"
+gcloud --project ${PROJECT_ID} compute instances add-tags $HOSTNAME --zone ${GC_ZONE} --tags "startup-done"
