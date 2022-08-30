@@ -1,0 +1,29 @@
+{
+  "settings": {
+    "index": {
+      "number_of_replicas": 0
+    }
+  },
+  "mappings": {
+    "properties": {
+      "rs_id": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "variant_id": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      }
+    }
+  }
+}
