@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<yandex>
+<clickhouse>
   <profiles>
         <default>
-            <max_memory_usage>${mem_bytes}</max_memory_usage>
-		    <max_bytes_before_external_sort>${mem_bytes80}</max_bytes_before_external_sort>
-		    <max_bytes_before_external_group_by>${mem_bytes80}</max_bytes_before_external_group_by>
+            <!-- <max_memory_usage>${mem_bytes}</max_memory_usage> -->
+		    <!-- <max_bytes_before_external_sort>${mem_bytes80}</max_bytes_before_external_sort> -->
+		    <!-- <max_bytes_before_external_group_by>${mem_bytes80}</max_bytes_before_external_group_by> -->
             <lock_acquire_timeout>3000</lock_acquire_timeout>
             <send_timeout>3000</send_timeout>
             <receive_timeout>3000</receive_timeout>    
@@ -13,9 +13,9 @@
             <max_query_size>1048576</max_query_size>
         </default>
         <readonly>
-            <max_memory_usage>${mem_bytes}</max_memory_usage>
-		    <max_bytes_before_external_sort>${mem_bytes80}</max_bytes_before_external_sort>
-		    <max_bytes_before_external_group_by>${mem_bytes80}</max_bytes_before_external_group_by>
+            <!-- <max_memory_usage>${mem_bytes}</max_memory_usage> -->
+		    <!-- <max_bytes_before_external_sort>${mem_bytes80}</max_bytes_before_external_sort> -->
+		    <!-- <max_bytes_before_external_group_by>${mem_bytes80}</max_bytes_before_external_group_by> -->
             <use_uncompressed_cache>1</use_uncompressed_cache>
             <load_balancing>random</load_balancing>
             <readonly>128</readonly>
@@ -54,4 +54,4 @@
             </interval>
         </default>
     </quotas>
-</yandex>
+</clickhouse>
