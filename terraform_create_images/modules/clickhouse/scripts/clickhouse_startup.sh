@@ -239,7 +239,7 @@ sql_scripts=(
     variants.sql
 )
 
-content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/clickhouse/scripts/
+content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/clickhouse/scripts/sql
 
 for scrpt in ${sql_scripts[@]}; do
     wget $content/$scrpt
