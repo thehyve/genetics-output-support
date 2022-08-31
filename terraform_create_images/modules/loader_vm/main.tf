@@ -73,8 +73,10 @@ resource "google_compute_instance" "vm" {
       {
         PROJECT_ID     = var.project_id,
         GC_ZONE        = var.vm_default_zone,
-        CH_DISK        = var.disk_clickhouse_name,
-        ES_DISK        = var.disk_elastic_name,
+        CH_DEVICE      = var.disk_clickhouse_name,
+        CH_DISK        = google_compute_disk.ch_disk.self_link,
+        ES_DEVICE      = var.disk_elastic_name,
+        ES_DISK        = google_compute_disk.es_disk.self_link,
         ES_VERSION     = var.vm_elastic_search_version,
         CH_VERSION     = var.vm_clickhouse_version,
         GS_ETL_DATASET = var.gs_etl,
@@ -106,10 +108,10 @@ resource "google_service_account" "vm_service_account" {
 // Roles ---
 resource "google_project_iam_member" "gos_vm_role" {
   for_each = toset([
-    # "roles/storage.admin",
+    "roles/storage.admin",
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
-    # "roles/compute.admin"
+    "roles/compute.admin"
   ])
   role    = each.key
   member  = "serviceAccount:${google_service_account.vm_service_account.email}"
