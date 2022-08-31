@@ -23,10 +23,9 @@ echo "Total RAM available: $RAM"
 echo "ES RAM allocation (1/"$ES_RAM_DENOMINATOR"th): $ES_RAM"
 echo "CH RAM allocation (1/"$CH_RAM_DENOMINATOR"th): $CH_RAM"
 
-module=posvm
 # === DISKS
-es_mount = "/mnt/disks/es"
-ch_mount = "/mnt/disks/ch"
+es_mount="/mnt/disks/es"
+ch_mount="/mnt/disks/ch"
 
 # === Docker
 docker_es=elasticsearch
@@ -35,8 +34,22 @@ docker_ch=clickhouse
 echo "---> Installing dependencies for GOS VM"
 
 apt update &&
-  apt -y install wget python3-pip &&
-  pip3 install elasticsearch-loader
+  apt -y install wget python3-pip ca-certificates curl gnupg lsb-release
+
+echo "---> Installing Python dependencies"
+pip3 install elasticsearch-loader
+
+echo "---> Installing Docker"
+mkdir -p /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+apt update
+apt -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 echo "---> Preparing CH Disk"
 # based on the device-name used in infrastructure definition it should be
@@ -55,7 +68,6 @@ sudo mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard \
   /dev/disk/by-id/google-${ES_DISK}
 sudo mkdir -p $es_mount
 sudo mount -o discard,defaults /dev/disk/by-id/google-${ES_DISK} $es_mount
-# Change permission so anyone can write
 sudo chmod a+w $es_mount
 
 echo "---> Downloading loading scripts"
@@ -86,7 +98,7 @@ sql_scripts=(
   variants.sql
 )
 
-content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/$module/scripts/clickhouse/sql
+content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/${MODULE}/scripts/clickhouse/sql
 
 for scrpt in $${sql_scripts[@]}; do
   wget $content/$scrpt
@@ -97,13 +109,13 @@ es_indexes=(
   index_settings_studies.json
   index_settings_variants.json
 )
-content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/$module/scripts/elasticseach
+content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/${MODULE}/scripts/elasticseach
 
 for scrpt in $${sql_scripts[@]}; do
   wget $content/$scrpt
 done
 
-wget https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/$module/scripts/create_and_load_everything_from_scratch.sh
+wget https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/${MODULE}/scripts/create_and_load_everything_from_scratch.sh
 
 chmod +x create_and_load_everything_from_scratch.sh
 

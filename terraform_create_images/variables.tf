@@ -3,11 +3,11 @@
 variable "config_script_name" {
   description = "Open Targets Genetics script name, not related to any configuration parameter."
   type        = string
-  default     = "vms"
+  default     = "gos"
 }
 
 variable "config_release_name" {
-  description = "Open Targets Genetics release name, parameter for the images"
+  description = "Open Targets Genetics release name: used to identify created disks."
   type        = string
   default     = "release"
 }

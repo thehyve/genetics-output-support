@@ -8,7 +8,8 @@ resource "random_string" "random" {
     // Take into account the machine type as well
     machine_type = var.vm_pos_machine_type
     // Be aware of launch script changes
-    launch_script_hash = md5(file("${path.module}/scripts/create_and_load_everything_from_scratch.sh"))
+    launch_script_hash = md5(file("${path.module}/scripts/vm-start-up-script.sh"))
+    load_script_hash   = md5(file("${path.module}/scripts/create_and_load_everything_from_scratch.sh"))
   }
 }
 
@@ -79,13 +80,14 @@ resource "google_compute_instance" "vm" {
         GS_ETL_DATASET = var.gs_etl,
         IMAGE_PREFIX   = var.release_name
         DEP_BRANCH     = var.branch
+        MODULE         = "loader_vm"
       }
     )
     google-logging-enabled = true
   }
 
   service_account {
-    email  = "pos-service-account@${var.project_id}.iam.gserviceaccount.com"
+    email  = google_service_account.vm_service_account.email
     scopes = ["cloud-platform"]
   }
 
@@ -93,4 +95,23 @@ resource "google_compute_instance" "vm" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+resource "google_service_account" "vm_service_account" {
+  project      = var.project_id
+  account_id   = "${var.module_wide_prefix_scope}-svc-${random_string.random.result}"
+  display_name = "${var.module_wide_prefix_scope}-GCP-service-account"
+}
+
+// Roles ---
+resource "google_project_iam_member" "gos_vm_role" {
+  for_each = toset([
+    # "roles/storage.admin",
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+    # "roles/compute.admin"
+  ])
+  role    = each.key
+  member  = "serviceAccount:${google_service_account.vm_service_account.email}"
+  project = var.project_id
 }
