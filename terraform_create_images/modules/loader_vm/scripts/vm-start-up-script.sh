@@ -164,7 +164,7 @@ umount $ch_mount
 
 # create disk snapshots
 # https://cloud.google.com/sdk/gcloud/reference/compute/disks/snapshot
-
+gcloud compute disks snapshot es_disk ch_disk --snapshot-names es-1,ch-1
 # copy disks to correct zones
 
 # shutdown machine
