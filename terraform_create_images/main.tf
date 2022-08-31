@@ -27,11 +27,12 @@ provider "google-beta" {
   #zone   = local.gcp_zone
 }
 
-module "backend_pos_vm" {
+module "loading_vm" {
   module_wide_prefix_scope = "${var.config_script_name}-vm"
   source                   = "./modules/loader_vm"
 
   project_id = var.config_project_id
+  branch     = "revise-image-creation"
 
   // Region and zone
   vm_default_zone           = var.config_gcp_default_zone
