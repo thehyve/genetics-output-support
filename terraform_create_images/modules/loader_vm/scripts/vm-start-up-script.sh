@@ -111,7 +111,7 @@ sql_scripts=(
   v2d_log.sql
   v2d.sql
   v2d_sa_gwas_log.sql
-  v2d_sa_gwas_log.sql
+  v2d_sa_gwas.sql
   v2d_sa_molecular_trait_log.sql
   v2d_sa_molecular_trait.sql
   v2g_scored_log.sql
@@ -137,7 +137,6 @@ done
 
 helper_scripts=(
   create_and_load_everything_from_scratch.sh
-  run.sh
 )
 
 for scrpt in $${helper_scripts[@]}; do
