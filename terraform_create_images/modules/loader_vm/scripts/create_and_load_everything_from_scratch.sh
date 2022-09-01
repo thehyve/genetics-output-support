@@ -24,10 +24,36 @@ load_foreach_parquet() {
   local q="clickhouse-client -h ${CLICKHOUSE_HOST} --query=\"insert into ${table_name} format Parquet\" "
 
   # Set max-procs to 0 to allow xargs to max out allowed process count.
-  gsutil ls "${path_prefix}"/*.parquet |
+  gsutil ls "${path_prefix}"/part-0000*.parquet |
     xargs --max-procs=$cpu_count -t -I % \
       bash -c "gsutil cat % | ${q}"
   echo "done loading $path_prefix glob files into this table $table_name"
+}
+
+# Load files into Elasticsearch instance from Google Storage.
+#
+# Takes threes arguments:
+#
+# $1 - Path to data in google storage.
+# $2 - The Elasticsearch index to add the data to.
+# $3 - JSON file specifying index.
+#
+# Examples
+#
+#   load_json_for_elastic \
+#     gs://open-targets-genetics-data/22.08/json/lut/study-index \
+#     study \
+#     /path/to/file/index_settings_studies.json \
+#
+# Returns the exit code of the last command executed in debug mode or 0
+#   otherwise.
+load_json_for_elastic() {
+  local data_path=$1
+  local index=$2
+  local index_file=$3
+  gsutil ls ${data_path}/part-*.json |
+    xargs --max-procs=2 -t -I % \
+      bash -c "gsutil cat % | elasticsearch_loader --es-host \"http://$ES_HOST:9200\" --index-settings-file $index_file --bulk-size 10000 --index $index json --json-lines -"
 }
 
 ## Database setup
@@ -113,25 +139,24 @@ done
 {
   echo "load elasticsearch studies data"
   curl -XDELETE "${ES_HOST}:9200/studies"
-  "${SCRIPT_DIR}/run.sh" cat "${base_path}"/json/lut/study-index/part-* |
-    elasticsearch_loader --es-host "http://${ES_HOST}:9200" \
-      --index-settings-file "${SCRIPT_DIR}/index_settings_studies.json" \
-      --bulk-size 10000 --index studies json --json-lines -
+  load_json_for_elastic \
+    $base_path/json/lut/study-index \
+    studies \
+    ${SCRIPT_DIR}/index_settings_studies.json
 
 } &
 {
   echo "load elasticsearch genes data"
   curl -XDELETE "${ES_HOST}:9200/genes"
-  "${SCRIPT_DIR}/run.sh" cat "${base_path}"/json/lut/genes-index/part-* |
-    elasticsearch_loader --es-host "http://${ES_HOST}:9200" \
-      --index-settings-file "${SCRIPT_DIR}/index_settings_genes.json" \
-      --bulk-size 10000 --with-retry --timeout 300 --index genes json --json-lines -
-
+  load_json_for_elastic \
+    $base_path/json/lut/genes-index \
+    genes \
+    ${SCRIPT_DIR}/index_settings_genes.json
 } &
 wait
 
 # This is done after creating all the CH tables as it involves large streaming reads. When executed concurrently
-# with the data inserts it results in timeouts. 
+# with the data inserts it results in timeouts.
 echo "Load Elasticsearch variants data from Clickhouse"
 for chr in "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "20" "21" "22" "x" "y"; do
   chrU=$(echo -n $chr | awk '{print toupper($0)}')
