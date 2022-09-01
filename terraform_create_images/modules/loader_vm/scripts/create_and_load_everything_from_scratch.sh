@@ -51,9 +51,10 @@ load_json_for_elastic() {
   local data_path=$1
   local index=$2
   local index_file=$3
-  gsutil ls ${data_path}/part-*.json |
-    xargs --max-procs=2 -t -I % \
-      bash -c "gsutil cat % | elasticsearch_loader --es-host \"http://$ES_HOST:9200\" --index-settings-file $index_file --bulk-size 10000 --index $index json --json-lines -"
+  gsutil cat ${data_path}/part-*.json |
+    elasticsearch_loader --es-host "http://$ES_HOST:9200" \
+      --index-settings-file $index_file --bulk-size 10000 \
+      --with-retry --timeout 300 --index $index json --json-lines -
 }
 
 ## Database setup
