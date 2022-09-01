@@ -90,6 +90,8 @@ sudo chmod a+w $es_mount
 mkdir -p $es_data
 
 echo "---> Downloading loading scripts"
+content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/${MODULE}/scripts
+
 sql_scripts=(
   d2v2g_scored_log.sql
   d2v2g_scored.sql
@@ -100,6 +102,8 @@ sql_scripts=(
   manhattan.sql
   studies_log.sql
   studies.sql
+  studies_overlap.sql
+  studies_overlap_log.sql
   v2d_coloc_log.sql
   v2d_coloc.sql
   v2d_credset_log.sql
@@ -117,10 +121,8 @@ sql_scripts=(
   variants.sql
 )
 
-content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/${MODULE}/scripts/clickhouse/sql
-
 for scrpt in $${sql_scripts[@]}; do
-  wget -P $scripts $content/$scrpt
+  wget -P $scripts $content/clickhouse/sql/$scrpt
 done
 
 es_indexes=(
@@ -128,21 +130,20 @@ es_indexes=(
   index_settings_studies.json
   index_settings_variants.json
 )
-content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/${MODULE}/scripts/elasticseach
 
 for scrpt in $${es_indexes[@]}; do
-  wget -P $scripts $content/$scrpt
+  wget -P $scripts $content/elasticsearch/$scrpt
 done
 
 helper_scripts=(
-  create_and_load_everything_from_scratch.sh,
+  create_and_load_everything_from_scratch.sh
   run.sh
 )
+
 for scrpt in $${helper_scripts[@]}; do
   wget -P $scripts $content/$scrpt
+  chmod +x $scripts/$scrpt
 done
-
-chmod +x $scripts/create_and_load_everything_from_scratch.sh
 
 # start Clickhouse
 # https://hub.docker.com/r/clickhouse/clickhouse-server/
@@ -174,7 +175,7 @@ docker run -d --restart always \
   docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
 
 echo "---> Starting data loading"
-time bash .$scripts/create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET} >>$ch_mount"/genetics_loading_log.txt"
+time bash .$scripts/create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
 
 echo "---> Data loading complete"
 
@@ -190,7 +191,7 @@ umount $ch_mount
 
 # create disk snapshots
 # https://cloud.google.com/sdk/gcloud/reference/compute/disks/snapshot
-gcloud compute disks snapshot ${ES_DISK} ${CH_DISK} --snapshot-names es-1,ch-1 --zone ${GC_ZONE}
+gcloud compute disks snapshot ${ES_DISK} ${CH_DISK} --snapshot-names snap-${ES_DISK},snap-${CH_DISK} --zone ${GC_ZONE}
 
 # copy disks to correct zones
 

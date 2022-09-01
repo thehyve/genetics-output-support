@@ -44,7 +44,7 @@ variable "config_project_id" {
 variable "config_gs_etl" {
   description = "Output of the ETL [root]. Eg. open-targets-genetics-data-releases/21.04/output"
   type        = string
-  default     = "open-targets-genetics-data-releases/21.04/output"
+  default     = "genetics-portal-dev-data/22.08.0/outputs"
 }
 
 // --- POS VM Configuration --- //
