@@ -30,6 +30,8 @@ echo "CH RAM allocation (1/"$CH_RAM_DENOMINATOR"th): $CH_RAM"
 es_mount="/mnt/disks/es"
 ch_mount="/mnt/disks/ch"
 ch_serv="$ch_mount/var/lib/clickhouse"
+ch_conf="$ch_mount/etc/clickhouse-server/config.d"
+ch_user="$ch_mount/etc/clickhouse-server/user.d"
 es_data="$es_mount/elasticsearch"
 scripts=/tmp/scripts
 mkdir -p $scripts
@@ -80,6 +82,8 @@ sudo mount -o discard,defaults /dev/disk/by-id/google-${CH_DEVICE} $ch_mount
 # Change permission so anyone can write
 sudo chmod a+w $ch_mount
 mkdir -p $ch_serv
+mkdir -p $ch_user
+mkdir -p $ch_conf
 
 echo "---> Preparing ES Disk"
 sudo mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard \
@@ -144,6 +148,9 @@ for scrpt in $${helper_scripts[@]}; do
   chmod +x $scripts/$scrpt
 done
 
+wget -P $ch_conf $content"/clickhouse/configuration/config.xml"
+wget -P $ch_user $content"/clickhouse/configuration/users.xml"
+
 # start Clickhouse
 # https://hub.docker.com/r/clickhouse/clickhouse-server/
 echo "---> Starting Clickhouse Docker image"
@@ -152,6 +159,8 @@ docker run -d \
   -p 9000:9000 \
   --name clickhouse \
   --mount type=bind,source=$ch_serv,target=/var/lib/clickhouse \
+  --mount type=bind,source=$ch_conf,target=/etc/clickhouse-server/config.d \
+  --mount type=bind,source=$ch_user,target=/etc/clickhouse-server/user.d \
   --ulimit nofile=262144:262144 \
   clickhouse/clickhouse-server:${CH_VERSION}
 
