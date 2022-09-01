@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # CURRENTLY, IN ORDER TO BUILD SOME TABLES WE NEED A HIGHMEM MACHINE
-
+set -x
 export ES_HOST="${ES_HOST:-localhost}"
 export CLICKHOUSE_HOST="${CLICKHOUSE_HOST:-localhost}"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -51,10 +51,9 @@ load_json_for_elastic() {
   local data_path=$1
   local index=$2
   local index_file=$3
+  echo "[Elasticsearch] Loading $data_path into $index"
   gsutil cat ${data_path}/part-*.json |
-    elasticsearch_loader --es-host "http://$ES_HOST:9200" \
-      --index-settings-file $index_file --bulk-size 10000 \
-      --with-retry --timeout 300 --index $index json --json-lines -
+    elasticsearch_loader --index-settings-file $index_file --bulk-size 10000 --with-retry --timeout 300 --index $index json --json-lines -
 }
 
 ## Database setup
@@ -138,21 +137,21 @@ done
   load_foreach_parquet "${base_path}/lut/genes-index" "ot.genes"
 } &
 {
-  echo "load elasticsearch studies data"
+  echo "[Elasticsearch] load studies data"
   curl -XDELETE "${ES_HOST}:9200/studies"
   load_json_for_elastic \
-    $base_path/json/lut/study-index \
+    "$base_path/json/lut/study-index" \
     studies \
-    ${SCRIPT_DIR}/index_settings_studies.json
+    "${SCRIPT_DIR}/index_settings_studies.json"
 
 } &
 {
-  echo "load elasticsearch genes data"
+  echo "[Elasticsearch] load genes data"
   curl -XDELETE "${ES_HOST}:9200/genes"
   load_json_for_elastic \
-    $base_path/json/lut/genes-index \
+    "$base_path/json/lut/genes-index" \
     genes \
-    ${SCRIPT_DIR}/index_settings_genes.json
+    "${SCRIPT_DIR}/index_settings_genes.json"
 } &
 wait
 
