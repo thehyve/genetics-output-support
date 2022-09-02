@@ -5,9 +5,11 @@
         <size>200M</size>
     </logger>
     <display_name>ot-genetics</display_name>
-    <listen_try>0</listen_try>
+    <listen_host>::</listen_host>
+    <listen_host>0.0.0.0</listen_host>
+    <listen_try>1</listen_try>
     <listen_reuse_port>1</listen_reuse_port>
-    <keep_alive_timeout>60</keep_alive_timeout>
+    <keep_alive_timeout>3600</keep_alive_timeout>
     <max_concurrent_queries>256</max_concurrent_queries>
     <uncompressed_cache_size>17179869184</uncompressed_cache_size>
     <mark_cache_size>17179869184</mark_cache_size>
