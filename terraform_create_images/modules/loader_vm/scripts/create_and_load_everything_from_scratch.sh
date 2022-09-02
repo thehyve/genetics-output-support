@@ -76,8 +76,16 @@ intermediateTables=(
 )
 ## Create intermediary tables
 for t in "${intermediateTables[@]}"; do
-  echo "Creating intermediary table: ${t}_log"
+  echo "[Clickhouse] Creating intermediary table: ${t}_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/${t}_log.sql"
+done
+
+echo "[Elasticsearch] Create indexes"
+for idx in studies genes variants; do
+  local es_uri="${ES_HOST}:9200"
+  curl -XDELETE $es_uri/$idx
+  echo "[Elasticsearch] Create index $es_uri/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
+  curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json $es_uri/$idx
 done
 
 ## Load data
@@ -136,36 +144,36 @@ done
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/genes.sql"
   load_foreach_parquet "${base_path}/lut/genes-index" "ot.genes"
 } &
-{
-  echo "[Elasticsearch] load studies data"
-  curl -XDELETE "${ES_HOST}:9200/studies"
-  load_json_for_elastic \
-    "$base_path/json/lut/study-index" \
-    studies \
-    "${SCRIPT_DIR}/index_settings_studies.json"
+# {
+#   echo "[Elasticsearch] load studies data"
+#   curl -XDELETE "${ES_HOST}:9200/studies"
+#   load_json_for_elastic \
+#     "$base_path/json/lut/study-index" \
+#     studies \
+#     "${SCRIPT_DIR}/index_settings_studies.json"
 
-} &
-{
-  echo "[Elasticsearch] load genes data"
-  curl -XDELETE "${ES_HOST}:9200/genes"
-  load_json_for_elastic \
-    "$base_path/json/lut/genes-index" \
-    genes \
-    "${SCRIPT_DIR}/index_settings_genes.json"
-} &
+# } &
+# {
+#   echo "[Elasticsearch] load genes data"
+#   curl -XDELETE "${ES_HOST}:9200/genes"
+#   load_json_for_elastic \
+#     "$base_path/json/lut/genes-index" \
+#     genes \
+#     "${SCRIPT_DIR}/index_settings_genes.json"
+# } &
 wait
 
 # This is done after creating all the CH tables as it involves large streaming reads. When executed concurrently
 # with the data inserts it results in timeouts.
-echo "Load Elasticsearch variants data from Clickhouse"
-for chr in "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "20" "21" "22" "x" "y"; do
-  chrU=$(echo -n $chr | awk '{print toupper($0)}')
-  curl -XDELETE "${ES_HOST}:9200/variant_${chr}"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -q "select * from ot.variants prewhere chr_id = '${chrU}' format JSONEachRow" |
-    elasticsearch_loader --es-host "http://${ES_HOST}:9200" \
-      --index-settings-file "${SCRIPT_DIR}/index_settings_variants.json" \
-      --bulk-size 10000 --with-retry --timeout 300 --index variant_$chr json --json-lines -
-done
+# echo "Load Elasticsearch variants data from Clickhouse"
+# for chr in "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "20" "21" "22" "x" "y"; do
+#   chrU=$(echo -n $chr | awk '{print toupper($0)}')
+#   curl -XDELETE "${ES_HOST:9200/variant_${chr}"
+#   clickhouse-client -h "${CLICKHOUSE_HOST}" -q "select * from ot.variants prewhere chr_id = '${chrU}' format JSONEachRow" |
+#     elasticsearch_loader --es-host "http://${ES_HOST}:9200" \
+#       --index-settings-file "${SCRIPT_DIR}/index_settings_variants.json" \
+#       --bulk-size 10000 --with-retry --timeout 300 --index variant_$chr json --json-lines -
+# done
 
 ## Drop intermediate tables
 for t in "${intermediateTables[@]}"; do

@@ -43,10 +43,11 @@ docker_ch=clickhouse
 echo "---> Installing dependencies for GOS VM"
 
 apt-get update &&
-  apt-get -y install wget python3-pip ca-certificates curl gnupg lsb-release
+  apt-get -y install wget ca-certificates curl gnupg lsb-release
 
-echo "---> Installing Python dependencies"
-pip3 install elasticsearch-loader
+echo "---> Installing Elasticsearch bulk loader"
+wget https://github.com/miku/esbulk/releases/download/v0.7.3/esbulk_0.7.3_amd64.deb
+sudo dpkg -i esbulk_0.7.3_amd64.deb
 
 echo "---> Installing Docker"
 mkdir -p /etc/apt/keyrings
@@ -165,22 +166,22 @@ docker run -d \
   clickhouse/clickhouse-server:${CH_VERSION}
 
 # start Elasticsearch
-echo "---> Staring Elasticsearch Docker image"
-docker run -d --restart always \
-  --name elasticsearch \
-  -p 9200:9200 \
-  -p 9300:9300 \
-  -e discovery.type=single-node \
-  -e bootstrap.memory_lock=true \
-  -e repositories.url.allowed_urls='https://storage.googleapis.com/*' \
-  -e thread_pool.write.queue_size=1000 \
-  -e cluster.name=$(hostname) \
-  -e network.host=0.0.0.0 \
-  -e search.max_open_scroll_context=5000 \
-  -e ES_JAVA_OPTS="-Xms$${ES_RAM}g -Xmx$${ES_RAM}g" \
-  --mount type=bind,source=$es_data,target=/usr/share/elasticsearch/data \
-  -v /var/elasticsearch/log:/var/log/elasticsearch \
-  docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
+# echo "---> Staring Elasticsearch Docker image"
+# docker run -d --restart always \
+#   --name elasticsearch \
+#   -p 9200:9200 \
+#   -p 9300:9300 \
+#   -e discovery.type=single-node \
+#   -e bootstrap.memory_lock=true \
+#   -e repositories.url.allowed_urls='https://storage.googleapis.com/*' \
+#   -e thread_pool.write.queue_size=1000 \
+#   -e cluster.name=$(hostname) \
+#   -e network.host=0.0.0.0 \
+#   -e search.max_open_scroll_context=5000 \
+#   -e ES_JAVA_OPTS="-Xms$${ES_RAM}g -Xmx$${ES_RAM}g" \
+#   --mount type=bind,source=$es_data,target=/usr/share/elasticsearch/data \
+#   -v /var/elasticsearch/log:/var/log/elasticsearch \
+#   docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
 
 echo "---> Starting data loading"
 time bash .$scripts/create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
