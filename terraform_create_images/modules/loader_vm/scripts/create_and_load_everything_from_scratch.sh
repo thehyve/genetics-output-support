@@ -80,13 +80,13 @@ for t in "${intermediateTables[@]}"; do
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/${t}_log.sql"
 done
 
-echo "[Elasticsearch] Create indexes"
-for idx in studies genes variants; do
-  local es_uri="${ES_HOST}:9200"
-  curl -XDELETE $es_uri/$idx
-  echo "[Elasticsearch] Create index $es_uri/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
-  curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json $es_uri/$idx
-done
+# echo "[Elasticsearch] Create indexes"
+# for idx in studies genes variants; do
+#   local es_uri="${ES_HOST}:9200"
+#   curl -XDELETE $es_uri/$idx
+#   echo "[Elasticsearch] Create index $es_uri/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
+#   curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json $es_uri/$idx
+# done
 
 ## Load data
 {

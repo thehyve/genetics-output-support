@@ -183,8 +183,12 @@ docker run -d \
 #   -v /var/elasticsearch/log:/var/log/elasticsearch \
 #   docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
 
+echo "---> Waiting for Docker images to start"
+sleep 15
+
 echo "---> Starting data loading"
-time bash .$scripts/create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
+cd $scripts
+time bash ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
 
 echo "---> Data loading complete"
 
