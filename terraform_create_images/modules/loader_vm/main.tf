@@ -8,8 +8,10 @@ resource "random_string" "random" {
     // Take into account the machine type as well
     machine_type = var.vm_pos_machine_type
     // Be aware of launch script changes
-    launch_script_hash = md5(file("${path.module}/scripts/vm-start-up-script.sh"))
-    load_script_hash   = md5(file("${path.module}/scripts/create_and_load_everything_from_scratch.sh"))
+    launch_script_hash     = md5(file("${path.module}/scripts/vm-start-up-script.sh"))
+    load_script_hash       = md5(file("${path.module}/scripts/create_and_load_everything_from_scratch.sh"))
+    clickhouse_config_hash = md5(file("${path.module}/scripts/clickhouse/configuration/config.xml"))
+    load_script_hash       = md5(file("${path.module}/scripts/clickhouse/configuration/users.xml"))
   }
 }
 
