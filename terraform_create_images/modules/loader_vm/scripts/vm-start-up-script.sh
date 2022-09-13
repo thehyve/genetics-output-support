@@ -92,10 +92,10 @@ sudo mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard \
 sudo mkdir -p $ch_mount
 sudo mount -o discard,defaults /dev/disk/by-id/google-${CH_DEVICE} $ch_mount
 # Change permission so anyone can write
-sudo chmod a+w $ch_mount
 mkdir -p $ch_serv
 mkdir -p $ch_user
 mkdir -p $ch_conf
+sudo chmod -R a+w $ch_mount
 
 echo "---> Preparing ES Disk"
 sudo mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard \
