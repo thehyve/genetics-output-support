@@ -15,7 +15,7 @@ base_path="${1}"
 cpu_count=$(nproc --all)
 echo "${cpu_count} CPUs available for parallelisation."
 
-gsutil -m cp -r $base_path /tmp/data
+gsutil -m cp -r "gs://genetics-portal-dev-data/22.08.0/outputs" "/tmp/data"
 echo "Data loading exit status: $?"
 
 load_foreach_parquet() {
