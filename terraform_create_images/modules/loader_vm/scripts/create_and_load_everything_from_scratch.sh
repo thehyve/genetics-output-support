@@ -15,6 +15,9 @@ base_path="${1}"
 cpu_count=$(nproc --all)
 echo "${cpu_count} CPUs available for parallelisation."
 
+gsutil -m cp -r $base_path /tmp/data
+echo "Data loading exit status: $?"
+
 load_foreach_parquet() {
   # you need two parameters, the path_prefix to make the wildcard and
   # the table_name name to load into
@@ -59,7 +62,7 @@ load_json_for_elastic() {
 
 ## Database setup
 echo "Initialising database..."
-clickhouse-client -h "${CLICKHOUSE_HOST}" --query="drop database if exists ot;"
+clickhouse-client --query="drop database if exists ot;"
 
 intermediateTables=(
   studies
@@ -78,7 +81,7 @@ intermediateTables=(
 ## Create intermediary tables
 for t in "${intermediateTables[@]}"; do
   echo "[Clickhouse] Creating intermediary table: ${t}_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/${t}_log.sql"
+  clickhouse-client -m -n <"${SCRIPT_DIR}/${t}_log.sql"
 done
 
 echo "[Elasticsearch] Create indexes"
