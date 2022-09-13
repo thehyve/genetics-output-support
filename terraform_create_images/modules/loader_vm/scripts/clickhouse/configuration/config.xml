@@ -10,8 +10,12 @@
     <listen_try>1</listen_try>
     <listen_reuse_port>1</listen_reuse_port>
     <keep_alive_timeout>3600</keep_alive_timeout>
+    <receive_timeout>600</receive_timeout>
+    <send_timeout>600</send_timeout>
     <max_concurrent_queries>256</max_concurrent_queries>
     <uncompressed_cache_size>17179869184</uncompressed_cache_size>
     <mark_cache_size>17179869184</mark_cache_size>
+    <max_server_memory_usage>0</max_server_memory_usage>
+    <max_server_memory_usage_to_ram_ratio>0.7</max_server_memory_usage_to_ram_ratio>
     <umask>022</umask>
 </clickhouse>
