@@ -43,7 +43,7 @@ mkdir -p $scripts
 echo "---> Download data"
 data="/tmp/data"
 mkdir -p $data
-gsutil -m cp -r $GS_ETL_DATASET $data &
+gsutil -m cp -r ${GS_ETL_DATASET} $data &
 data_process_id=$!
 echo "Data download PID: $data_process_id"
 
@@ -202,7 +202,7 @@ echo "Data loading exit status: $?"
 
 echo "---> Starting data loading"
 cd $scripts
-time bash ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
+time bash ./create_and_load_everything_from_scratch.sh ${data}
 
 echo "---> Data loading complete"
 
