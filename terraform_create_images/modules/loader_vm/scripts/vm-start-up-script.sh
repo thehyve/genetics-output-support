@@ -36,6 +36,17 @@ es_data="$es_mount/elasticsearch"
 scripts=/tmp/scripts
 mkdir -p $scripts
 
+# === Data
+# We can either stream the data into the DB, or move it here and load it.
+# Network IO is the same, but this incurs additional disk reads. It's easier
+# to debug though and reduces timeouts on the data loading.
+echo "---> Download data"
+data="/tmp/data"
+mkdir -p $data
+gsutil -m cp -r $GS_ETL_DATASET $data &
+data_process_id=$!
+echo "Data download PID: $data_process_id"
+
 # === Docker
 docker_es=elasticsearch
 docker_ch=clickhouse
@@ -43,7 +54,7 @@ docker_ch=clickhouse
 echo "---> Installing dependencies for GOS VM"
 
 apt-get update &&
-  apt-get -y install wget ca-certificates curl gnupg lsb-release
+  apt-get -y install wget htop tmux ca-certificates curl gnupg lsb-release
 
 echo "---> Installing Elasticsearch bulk loader"
 wget https://github.com/miku/esbulk/releases/download/v0.7.3/esbulk_0.7.3_amd64.deb
@@ -165,26 +176,29 @@ docker run -d \
   --ulimit nofile=262144:262144 \
   clickhouse/clickhouse-server:${CH_VERSION}
 
-# start Elasticsearch
-# echo "---> Staring Elasticsearch Docker image"
-# docker run -d --restart always \
-#   --name elasticsearch \
-#   -p 9200:9200 \
-#   -p 9300:9300 \
-#   -e discovery.type=single-node \
-#   -e bootstrap.memory_lock=true \
-#   -e repositories.url.allowed_urls='https://storage.googleapis.com/*' \
-#   -e thread_pool.write.queue_size=1000 \
-#   -e cluster.name=$(hostname) \
-#   -e network.host=0.0.0.0 \
-#   -e search.max_open_scroll_context=5000 \
-#   -e ES_JAVA_OPTS="-Xms$${ES_RAM}g -Xmx$${ES_RAM}g" \
-#   --mount type=bind,source=$es_data,target=/usr/share/elasticsearch/data \
-#   -v /var/elasticsearch/log:/var/log/elasticsearch \
-#   docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
+start Elasticsearch
+echo "---> Staring Elasticsearch Docker image"
+docker run -d --restart always \
+  --name elasticsearch \
+  -p 9200:9200 \
+  -p 9300:9300 \
+  -e discovery.type=single-node \
+  -e bootstrap.memory_lock=true \
+  -e repositories.url.allowed_urls='https://storage.googleapis.com/*' \
+  -e thread_pool.write.queue_size=1000 \
+  -e cluster.name=$(hostname) \
+  -e network.host=0.0.0.0 \
+  -e search.max_open_scroll_context=5000 \
+  -e ES_JAVA_OPTS="-Xms$${ES_RAM}g -Xmx$${ES_RAM}g" \
+  --mount type=bind,source=$es_data,target=/usr/share/elasticsearch/data \
+  -v /var/elasticsearch/log:/var/log/elasticsearch \
+  docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
 
 echo "---> Waiting for Docker images to start"
 sleep 15
+
+wait $data_process_id
+echo "Data loading exit status: $?"
 
 echo "---> Starting data loading"
 cd $scripts
