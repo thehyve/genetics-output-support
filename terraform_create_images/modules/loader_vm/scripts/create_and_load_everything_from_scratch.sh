@@ -24,10 +24,10 @@ load_foreach_parquet() {
   local q="clickhouse-client -h ${CLICKHOUSE_HOST} --query=\"insert into ${table_name} format Parquet\" "
 
   # Set max-procs to 0 to allow xargs to max out allowed process count.
-  gsutil ls "${path_prefix}"/part-0000*.parquet |
-    xargs --max-procs=$cpu_count -t -I % \
-      bash -c "gsutil cat % | ${q}"
-  echo "done loading $path_prefix glob files into this table $table_name"
+  ls "${path_prefix}"/part-0000*.parquet |
+    xargs --max-procs=$(expr $cpu_count / 4) -t -I % \
+      bash -c "cat % | ${q}"
+  echo "[Clickhouse] Done loading $path_prefix files into table $table_name"
 }
 
 # Load files into Elasticsearch instance from Google Storage.
@@ -52,8 +52,9 @@ load_json_for_elastic() {
   local index=$2
   local index_file=$3
   echo "[Elasticsearch] Loading $data_path into $index"
-  gsutil cat ${data_path}/part-*.json |
-    elasticsearch_loader --index-settings-file $index_file --bulk-size 10000 --with-retry --timeout 300 --index $index json --json-lines -
+  for f in ${data_path}/part-*.json; do
+    cat $f | esbulk -0 -server localhost:9200 -index $index -size 2000 -w $(expr $cpu_count / 2)
+  done
 }
 
 ## Database setup
@@ -80,13 +81,13 @@ for t in "${intermediateTables[@]}"; do
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/${t}_log.sql"
 done
 
-# echo "[Elasticsearch] Create indexes"
-# for idx in studies genes variants; do
-#   local es_uri="${ES_HOST}:9200"
-#   curl -XDELETE $es_uri/$idx
-#   echo "[Elasticsearch] Create index $es_uri/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
-#   curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json $es_uri/$idx
-# done
+echo "[Elasticsearch] Create indexes"
+for idx in studies genes variants; do
+  local es_uri="${ES_HOST}:9200"
+  curl -XDELETE $es_uri/$idx &>/dev/null
+  echo "[Elasticsearch] Create index $es_uri/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
+  curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json $es_uri/$idx
+done
 
 ## Load data
 {
@@ -156,36 +157,29 @@ done
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/genes.sql"
   load_foreach_parquet "${base_path}/lut/genes-index" "ot.genes"
 } &
-# {
-#   echo "[Elasticsearch] load studies data"
-#   curl -XDELETE "${ES_HOST}:9200/studies"
-#   load_json_for_elastic \
-#     "$base_path/json/lut/study-index" \
-#     studies \
-#     "${SCRIPT_DIR}/index_settings_studies.json"
+{
+  echo "[Elasticsearch] load studies data"
+  load_json_for_elastic \
+    "$base_path/search/study" \
+    studies \
+    "${SCRIPT_DIR}/index_settings_studies.json"
 
-# } &
-# {
-#   echo "[Elasticsearch] load genes data"
-#   curl -XDELETE "${ES_HOST}:9200/genes"
-#   load_json_for_elastic \
-#     "$base_path/json/lut/genes-index" \
-#     genes \
-#     "${SCRIPT_DIR}/index_settings_genes.json"
-# } &
+} &
+{
+  echo "[Elasticsearch] load genes data"
+  load_json_for_elastic \
+    "$base_path/search/gene" \
+    genes \
+    "${SCRIPT_DIR}/index_settings_genes.json"
+} &
+{
+  echo "[Elasticsearch] load genes data"
+  load_json_for_elastic \
+    "$base_path/search/variant" \
+    variants \
+    "${SCRIPT_DIR}/index_settings_variants.json"
+} &
 wait
-
-# This is done after creating all the CH tables as it involves large streaming reads. When executed concurrently
-# with the data inserts it results in timeouts.
-# echo "Load Elasticsearch variants data from Clickhouse"
-# for chr in "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "20" "21" "22" "x" "y"; do
-#   chrU=$(echo -n $chr | awk '{print toupper($0)}')
-#   curl -XDELETE "${ES_HOST:9200/variant_${chr}"
-#   clickhouse-client -h "${CLICKHOUSE_HOST}" -q "select * from ot.variants prewhere chr_id = '${chrU}' format JSONEachRow" |
-#     elasticsearch_loader --es-host "http://${ES_HOST}:9200" \
-#       --index-settings-file "${SCRIPT_DIR}/index_settings_variants.json" \
-#       --bulk-size 10000 --with-retry --timeout 300 --index variant_$chr json --json-lines -
-# done
 
 ## Drop intermediate tables
 for t in "${intermediateTables[@]}"; do
