@@ -1,6 +1,6 @@
 #!/bin/bash
 # Startup script for Elastic Search VM Instance
-set -x
+# set -x
 
 echo "---> [LAUNCH] GOS support VM"
 
@@ -43,9 +43,7 @@ mkdir -p $scripts
 echo "---> Download data"
 data="/tmp/data"
 mkdir -p $data
-gsutil -m cp -r ${GS_ETL_DATASET} $data &
-data_process_id=$!
-echo "Data download PID: $data_process_id"
+sudo chmod a+w -R $data
 
 # === Docker
 docker_es=elasticsearch
@@ -197,12 +195,9 @@ docker run -d --restart always \
 echo "---> Waiting for Docker images to start"
 sleep 15
 
-wait $data_process_id
-echo "Data loading exit status: $?"
-
 echo "---> Starting data loading"
 cd $scripts
-time bash ./create_and_load_everything_from_scratch.sh ${data}
+time bash ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
 
 echo "---> Data loading complete"
 
