@@ -95,76 +95,76 @@ done
 
 ## Load data
 {
-  load_foreach_parquet "${data_path}/output/lut/study-index" "ot.studies_log"
+  load_foreach_parquet "${data_path}/outputs/lut/study-index" "ot.studies_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/studies.sql"
   echo "[Clickhouse] Done loading final studies from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/lut/overlap-index" "ot.studies_overlap_log"
+  load_foreach_parquet "${data_path}/outputs/lut/overlap-index" "ot.studies_overlap_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/studies_overlap.sql"
   echo "[Clickhouse] Done loading final studies_overlap from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/lut/variant-index" "ot.variants_log"
+  load_foreach_parquet "${data_path}/outputs/lut/variant-index" "ot.variants_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/variants.sql"
   echo "[Clickhouse] Done loading final variant from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/d2v2g_scored" "ot.d2v2g_scored_log"
+  load_foreach_parquet "${data_path}/outputs/d2v2g_scored" "ot.d2v2g_scored_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/d2v2g_scored.sql"
   echo "[Clickhouse] Done loading final d2v2g_scored from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/v2d" "ot.v2d_log"
+  load_foreach_parquet "${data_path}/outputs/v2d" "ot.v2d_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d.sql"
   echo "[Clickhouse] Done loading final v2d from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/v2g_scored" "ot.v2g_scored_log"
+  load_foreach_parquet "${data_path}/outputs/v2g_scored" "ot.v2g_scored_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_scored.sql"
   echo "[Clickhouse] Done loading final v2g_scored from log table."
   echo "Create v2g structure"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_structure.sql"
 } &
 {
-  load_foreach_parquet "${data_path}/output/v2d_coloc" "ot.v2d_coloc_log"
+  load_foreach_parquet "${data_path}/outputs/v2d_coloc" "ot.v2d_coloc_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_coloc.sql"
   echo "[Clickhouse] Done loading final v2d_coloc from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/v2d_credset" "ot.v2d_credset_log"
+  load_foreach_parquet "${data_path}/outputs/v2d_credset" "ot.v2d_credset_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_credset.sql"
   echo "[Clickhouse] Done loading final v2d_credset from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/sa/gwas" "ot.v2d_sa_gwas_log"
+  load_foreach_parquet "${data_path}/outputs/sa/gwas" "ot.v2d_sa_gwas_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_sa_gwas.sql"
   echo "[Clickhouse] Done loading final v2d_sa_gwas from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/sa/molecular_trait" "ot.v2d_sa_molecular_trait_log"
+  load_foreach_parquet "${data_path}/outputs/sa/molecular_trait" "ot.v2d_sa_molecular_trait_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_sa_molecular_trait.sql"
   echo "[Clickhouse] Done loading final v2d_sa_molecular_trait from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/l2g" "ot.l2g_log"
+  load_foreach_parquet "${data_path}/outputs/l2g" "ot.l2g_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/l2g.sql"
   echo "[Clickhouse] Done loading final l2g from log table."
 } &
 {
-  load_foreach_parquet "${data_path}/output/manhattan" "ot.manhattan_log"
+  load_foreach_parquet "${data_path}/outputs/manhattan" "ot.manhattan_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/manhattan.sql"
   echo "[Clickhouse] Done loading final manhattan from log table."
 } &
 {
   echo "Load gene index"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/genes.sql"
-  load_foreach_parquet "${data_path}/output/lut/genes-index" "ot.genes"
+  load_foreach_parquet "${data_path}/outputs/lut/genes-index" "ot.genes"
 } &
 {
   echo "[Elasticsearch] load studies data"
   load_json_for_elastic \
-    "${data_path}/output/search/study" \
+    "${data_path}/outputs/search/study" \
     studies \
     "${SCRIPT_DIR}/index_settings_studies.json"
 
@@ -172,14 +172,14 @@ done
 {
   echo "[Elasticsearch] load genes data"
   load_json_for_elastic \
-    "${data_path}/output/search/gene" \
+    "${data_path}/outputs/search/gene" \
     genes \
     "${SCRIPT_DIR}/index_settings_genes.json"
 } &
 {
   echo "[Elasticsearch] load genes data"
   load_json_for_elastic \
-    "${data_path}/output/search/variant" \
+    "${data_path}/outputs/search/variant" \
     variants \
     "${SCRIPT_DIR}/index_settings_variants.json"
 } &
