@@ -102,8 +102,8 @@ sudo mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard \
   /dev/disk/by-id/google-${ES_DEVICE}
 sudo mkdir -p $es_mount
 sudo mount -o discard,defaults /dev/disk/by-id/google-${ES_DEVICE} $es_mount
-sudo chmod a+w $es_mount
 mkdir -p $es_data
+sudo chmod -R a+w $es_mount
 
 echo "---> Downloading loading scripts"
 content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/${MODULE}/scripts
@@ -190,7 +190,7 @@ docker run -d --restart always \
   -e network.host=0.0.0.0 \
   -e search.max_open_scroll_context=5000 \
   -e ES_JAVA_OPTS="-Xms$${ES_RAM}g -Xmx$${ES_RAM}g" \
-  --mount type=bind,source=$es_data,target=/usr/share/elasticsearch/data \
+  -v $es_data:/usr/share/elasticsearch/data \
   -v /var/elasticsearch/log:/var/log/elasticsearch \
   docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
 
