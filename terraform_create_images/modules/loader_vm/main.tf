@@ -19,6 +19,7 @@ resource "google_compute_disk" "ch_disk" {
   name = "${var.disk_clickhouse_name}-${random_string.random.result}"
   type = local.disk_type
   zone = var.vm_default_zone
+  size = 250
   labels = {
     datatype = "clickhouse"
   }
@@ -27,6 +28,7 @@ resource "google_compute_disk" "es_disk" {
   name = "${var.disk_elastic_name}-${random_string.random.result}"
   type = local.disk_type
   zone = var.vm_default_zone
+  size = 50
   labels = {
     datatype = "elasticsearch"
   }
