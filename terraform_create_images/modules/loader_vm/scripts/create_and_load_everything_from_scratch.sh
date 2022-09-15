@@ -87,10 +87,9 @@ done
 
 echo "[Elasticsearch] Create indexes"
 for idx in studies genes variants; do
-  local es_uri="${ES_HOST}:9200"
-  curl -XDELETE $es_uri/$idx &>/dev/null
-  echo "[Elasticsearch] Create index $es_uri/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
-  curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json $es_uri/$idx
+  curl -XDELETE localhost:9200/$idx &>/dev/null
+  echo "[Elasticsearch] Create index localhost:9200/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
+  curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json localhost:9200/$idx
 done
 
 ## Load data
