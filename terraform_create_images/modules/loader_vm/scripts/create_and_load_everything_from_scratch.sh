@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # CURRENTLY, IN ORDER TO BUILD SOME TABLES WE NEED A HIGHMEM MACHINE
-set -x
+
 export ES_HOST="${ES_HOST:-localhost}"
 export CLICKHOUSE_HOST="${CLICKHOUSE_HOST:-localhost}"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -16,7 +16,7 @@ data_path="/tmp/data"
 cpu_count=$(nproc --all)
 echo "${cpu_count} CPUs available for parallelisation."
 
-gsutil -m cp -r $GS_DATA $data_path
+gsutil -m cp -r $GS_DATA $data_path &>/dev/null
 echo "Data loading exit status: $?"
 
 load_foreach_parquet() {
