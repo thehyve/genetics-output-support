@@ -5,7 +5,7 @@ gs_sync_from    = "genetics-portal-dev-data/22.02.4/outputs"
 
 # Variable for creating IMAGES : ElasticSearch and Clickhouse
 config_direct_json = "genetics-portal-dev-data/21.10"
-config_gs_etl      = "genetics-portal-dev-data/22.08.0/outputs"
+config_gs_etl      = "genetics-portal-dev-data/22.09.0/outputs"
 
 # Project dev info
 config_project_id         = "open-targets-genetics-dev"
