@@ -3,15 +3,20 @@
 variable "config_script_name" {
   description = "Open Targets Genetics script name, not related to any configuration parameter."
   type        = string
-  default     = "vms"
+  default     = "gos"
 }
 
 variable "config_release_name" {
-  description = "Open Targets Genetics release name, parameter for the images"
+  description = "Open Targets Genetics release name: used to identify created disks."
   type        = string
   default     = "release"
 }
 
+variable "config_branch" {
+  description = "Branch of genetics-output-support from which to fetch SQL and other scripts."
+  type        = string
+  default     = "main"
+}
 variable "config_vm_elastic_search_version" {
   description = "Elastic search version to deploy"
   type        = string
@@ -42,9 +47,9 @@ variable "config_project_id" {
 
 // --- ETL info --- //
 variable "config_gs_etl" {
-  description = "Output of the ETL [root]. Eg. open-targets-genetics-data-releases/21.04/output"
+  description = "Output of the ETL [root]. Eg. gs://open-targets-genetics-data-releases/21.04/output"
   type        = string
-  default     = "open-targets-genetics-data-releases/21.04/output"
+  default     = "gs://genetics-portal-dev-data/22.09.0/outputs"
 }
 
 // --- POS VM Configuration --- //

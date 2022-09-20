@@ -1,17 +1,11 @@
 # Open Targets: Genetics-output-support overview
 
-Genetics Output Support (POS) is the third component in the back-end data and infrastructure generation pipeline.
-GOS is an automatic and unified place to perform a release of OT Platform to the public. The other two components are Platform Input Support (GIS) and the ETL.
-POS will be responsible for:
-
-* Infrastructure tasks (todo)
-* Publishing datasets in different services
-* Data validation (todo)
+Genetics Output Support (POS) provides tools to prepare the Genetics data for public distribution. Distribution is either part of the public facing web portal, or through GCP Bigquery.
 
 ### Requirement
-*) Terraform
-*) Jq
-
+- Terraform
+- Jq
+- Make
 ### How to run the different steps
 Simply run the following command:
 
@@ -23,15 +17,18 @@ The output shows the possible action to run
 Usage:
   make
   help             show help message
+  disk             Create GCP Disk snapshots for Clickhouse and ElasticSearch.
   bigquerydev      Big Query Dev
   bigqueryprod     Big Query Production
   sync             Sync the pre-data bucket to private ftp and public ftp
   syncgs           Copy data from pre-release to release 
 ```
 
-Every single variables is stored in the **config.tfvars**
+Variables are stored in the **config.tfvars**. Typically these are the only variables which need updating, but it may be necessary from time to time to update variables in the individual modules.
 
 The current POS steps are:
+
+```make disk``` generates two GCP disk [snapshots](https://cloud.google.com/compute/docs/disks/snapshots): one for Elasticsearch and one for Clickhouse. These can be subsequently mounted as disks to VMs running the necessary database.
 
 ```make bigquerydev``` it generates a bigquery dataset in eu-dev
 

@@ -1,5 +1,6 @@
 #!/bin/bash
 # Startup script for Elastic Search VM Instance
+# set -x
 
 echo "---> [LAUNCH] GOS support VM"
 
@@ -7,8 +8,10 @@ echo "---> Printing environment variables:"
 
 echo "PROJECT_ID: ${PROJECT_ID}"
 echo "GS: ${GS_ETL_DATASET}"
+echo "CH_DEVICE: ${CH_DEVICE}"
 echo "CH_DISK: ${CH_DISK}"
 echo "CH_VERSION: ${CH_VERSION}"
+echo "ES_DEVICE: ${ES_DEVICE}"
 echo "ES_DISK: ${ES_DISK}"
 echo "ES_VERSION: ${ES_VERSION}"
 
@@ -23,10 +26,24 @@ echo "Total RAM available: $RAM"
 echo "ES RAM allocation (1/"$ES_RAM_DENOMINATOR"th): $ES_RAM"
 echo "CH RAM allocation (1/"$CH_RAM_DENOMINATOR"th): $CH_RAM"
 
-module=posvm
-# === DISKS
-es_mount = "/mnt/disks/es"
-ch_mount = "/mnt/disks/ch"
+# === Locations
+es_mount="/mnt/disks/es"
+ch_mount="/mnt/disks/ch"
+ch_serv="$ch_mount/var/lib/clickhouse"
+ch_conf="$ch_mount/etc/clickhouse-server/config.d"
+ch_user="$ch_mount/etc/clickhouse-server/user.d"
+es_data="$es_mount/elasticsearch"
+scripts=/tmp/scripts
+mkdir -p $scripts
+
+# === Data
+# We can either stream the data into the DB, or move it here and load it.
+# Network IO is the same, but this incurs additional disk reads. It's easier
+# to debug though and reduces timeouts on the data loading.
+echo "---> Download data"
+data="/tmp/data"
+mkdir -p $data
+sudo chmod a+w -R $data
 
 # === Docker
 docker_es=elasticsearch
@@ -34,31 +51,61 @@ docker_ch=clickhouse
 
 echo "---> Installing dependencies for GOS VM"
 
-apt update &&
-  apt -y install wget python3-pip &&
-  pip3 install elasticsearch-loader
+apt-get update &&
+  apt-get -y install wget htop tmux ca-certificates curl gnupg lsb-release
+
+echo "---> Installing Elasticsearch bulk loader"
+wget https://github.com/miku/esbulk/releases/download/v0.7.3/esbulk_0.7.3_amd64.deb
+sudo dpkg -i esbulk_0.7.3_amd64.deb
+
+echo "---> Installing Docker"
+mkdir -p /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+apt-get update
+apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+echo "---> Installing clickhouse-client"
+apt-get install -y apt-transport-https ca-certificates dirmngr
+apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
+
+echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee \
+  /etc/apt/sources.list.d/clickhouse.list
+apt-get update
+
+apt-get install -y clickhouse-client
 
 echo "---> Preparing CH Disk"
 # based on the device-name used in infrastructure definition it should be
 # /dev/disk/by-id/google-ch-disk
 # format disk
 sudo mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard \
-  /dev/disk/by-id/google-$CH_DISK
+  /dev/disk/by-id/google-${CH_DEVICE}
 # create mount and add disk
 sudo mkdir -p $ch_mount
-sudo mount -o discard,defaults /dev/disk/by-id/google-${CH_DISK} $ch_mount
+sudo mount -o discard,defaults /dev/disk/by-id/google-${CH_DEVICE} $ch_mount
 # Change permission so anyone can write
-sudo chmod a+w $ch_mount
+mkdir -p $ch_serv
+mkdir -p $ch_user
+mkdir -p $ch_conf
+sudo chmod -R a+w $ch_mount
 
 echo "---> Preparing ES Disk"
 sudo mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard \
-  /dev/disk/by-id/google-${ES_DISK}
+  /dev/disk/by-id/google-${ES_DEVICE}
 sudo mkdir -p $es_mount
-sudo mount -o discard,defaults /dev/disk/by-id/google-${ES_DISK} $es_mount
-# Change permission so anyone can write
-sudo chmod a+w $es_mount
+sudo mount -o discard,defaults /dev/disk/by-id/google-${ES_DEVICE} $es_mount
+mkdir -p $es_data
+sudo chmod -R a+w $es_mount
 
 echo "---> Downloading loading scripts"
+content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/${MODULE}/scripts
+
 sql_scripts=(
   d2v2g_scored_log.sql
   d2v2g_scored.sql
@@ -69,6 +116,8 @@ sql_scripts=(
   manhattan.sql
   studies_log.sql
   studies.sql
+  studies_overlap.sql
+  studies_overlap_log.sql
   v2d_coloc_log.sql
   v2d_coloc.sql
   v2d_credset_log.sql
@@ -76,7 +125,7 @@ sql_scripts=(
   v2d_log.sql
   v2d.sql
   v2d_sa_gwas_log.sql
-  v2d_sa_gwas_log.sql
+  v2d_sa_gwas.sql
   v2d_sa_molecular_trait_log.sql
   v2d_sa_molecular_trait.sql
   v2g_scored_log.sql
@@ -86,10 +135,8 @@ sql_scripts=(
   variants.sql
 )
 
-content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/$module/scripts/clickhouse/sql
-
 for scrpt in $${sql_scripts[@]}; do
-  wget $content/$scrpt
+  wget -P $scripts $content/clickhouse/sql/$scrpt
 done
 
 es_indexes=(
@@ -97,15 +144,22 @@ es_indexes=(
   index_settings_studies.json
   index_settings_variants.json
 )
-content=https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/$module/scripts/elasticseach
 
-for scrpt in $${sql_scripts[@]}; do
-  wget $content/$scrpt
+for scrpt in $${es_indexes[@]}; do
+  wget -P $scripts $content/elasticsearch/$scrpt
 done
 
-wget https://raw.githubusercontent.com/opentargets/genetics-output-support/${DEP_BRANCH}/terraform_create_images/modules/$module/scripts/create_and_load_everything_from_scratch.sh
+helper_scripts=(
+  create_and_load_everything_from_scratch.sh
+)
 
-chmod +x create_and_load_everything_from_scratch.sh
+for scrpt in $${helper_scripts[@]}; do
+  wget -P $scripts $content/$scrpt
+  chmod +x $scripts/$scrpt
+done
+
+wget -P $ch_conf $content"/clickhouse/configuration/config.xml"
+wget -P $ch_user $content"/clickhouse/configuration/users.xml"
 
 # start Clickhouse
 # https://hub.docker.com/r/clickhouse/clickhouse-server/
@@ -114,23 +168,14 @@ docker run -d \
   -p 8123:8123 \
   -p 9000:9000 \
   --name clickhouse \
-  --mount type=bind,source="$CH_DISK"/var/lib/clickhouse,target=/var/lib/clickhouse \
+  --mount type=bind,source=$ch_serv,target=/var/lib/clickhouse \
+  --mount type=bind,source=$ch_conf,target=/etc/clickhouse-server/config.d \
+  --mount type=bind,source=$ch_user,target=/etc/clickhouse-server/user.d \
   --ulimit nofile=262144:262144 \
   clickhouse/clickhouse-server:${CH_VERSION}
 
-# start Elasticsearch
+start Elasticsearch
 echo "---> Staring Elasticsearch Docker image"
-#configure elasticseach
-#  cluster.name            must be unique on network for udp broadcast
-#  network.host            allow connections on any network device, not just localhost
-#  bootstrap.memory_lock   disable swap
-#  xpack.security.enabled  turn off xpack extras
-#  search.max_open_scroll_context
-#                          increase nuber of scrolls possible at once
-#  discovery.type          turn off clustering
-#  thread_pool.write.queue_size
-#    size of the queue for bulk indexing tasks
-#      needed for high submissions from pipeline
 docker run -d --restart always \
   --name elasticsearch \
   -p 9200:9200 \
@@ -143,12 +188,16 @@ docker run -d --restart always \
   -e network.host=0.0.0.0 \
   -e search.max_open_scroll_context=5000 \
   -e ES_JAVA_OPTS="-Xms$${ES_RAM}g -Xmx$${ES_RAM}g" \
-  --mount type=bind,source=${ES_DISK}/elasticsearch,target=/usr/share/elasticsearch/data \
+  -v $es_data:/usr/share/elasticsearch/data \
   -v /var/elasticsearch/log:/var/log/elasticsearch \
   docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
 
+echo "---> Waiting for Docker images to start"
+sleep 15
+
 echo "---> Starting data loading"
-time create_and_load_everything_from_scratch.sh $GS_ETL_DATASET >$CH_DISK"/genetics_loading_log.txt"
+cd $scripts
+time bash ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
 
 echo "---> Data loading complete"
 
@@ -164,6 +213,7 @@ umount $ch_mount
 
 # create disk snapshots
 # https://cloud.google.com/sdk/gcloud/reference/compute/disks/snapshot
+gcloud compute disks snapshot ${ES_DISK} ${CH_DISK} --snapshot-names snap-${ES_DISK},snap-${CH_DISK} --zone ${GC_ZONE}
 
 # copy disks to correct zones
 
