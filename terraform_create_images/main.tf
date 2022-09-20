@@ -32,7 +32,7 @@ module "loading_vm" {
   source                   = "./modules/loader_vm"
 
   project_id = var.config_project_id
-  branch     = "revise-image-creation"
+  branch     = var.config_branch
 
   // Region and zone
   vm_default_zone           = var.config_gcp_default_zone

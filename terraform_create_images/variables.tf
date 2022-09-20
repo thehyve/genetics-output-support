@@ -12,6 +12,11 @@ variable "config_release_name" {
   default     = "release"
 }
 
+variable "config_branch" {
+  description = "Branch of genetics-output-support from which to fetch SQL and other scripts."
+  type        = string
+  default     = "main"
+}
 variable "config_vm_elastic_search_version" {
   description = "Elastic search version to deploy"
   type        = string

@@ -2,6 +2,7 @@
 release_id_dev  = "22.02"
 release_id_prod = "22.02"
 gs_sync_from    = "genetics-portal-dev-data/22.02.4/outputs"
+config_branch   = "main"
 
 # Variable for creating IMAGES : ElasticSearch and Clickhouse
 config_direct_json = "genetics-portal-dev-data/21.10"
