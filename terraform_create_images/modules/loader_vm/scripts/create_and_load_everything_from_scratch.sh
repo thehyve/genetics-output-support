@@ -28,7 +28,7 @@ load_foreach_parquet() {
   local q="clickhouse-client -h ${CLICKHOUSE_HOST} --query=\"insert into ${table_name} format Parquet\" "
 
   # Set max-procs to 0 to allow xargs to max out allowed process count.
-  ls "${path_prefix}"/part-*.parquet |
+  ls "${path_prefix}"/part-00000*.parquet |
     xargs --max-procs=$(expr $cpu_count / 4) -t -I % \
       bash -c "cat % | ${q}"
   echo "[Clickhouse] Done loading $path_prefix files into table $table_name"
