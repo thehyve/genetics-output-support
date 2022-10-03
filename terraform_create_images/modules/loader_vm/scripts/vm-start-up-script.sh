@@ -174,7 +174,6 @@ docker run -d \
   --ulimit nofile=262144:262144 \
   clickhouse/clickhouse-server:${CH_VERSION}
 
-start Elasticsearch
 echo "---> Staring Elasticsearch Docker image"
 docker run -d --restart always \
   --name elasticsearch \
