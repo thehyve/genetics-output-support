@@ -211,10 +211,19 @@ echo "---> Detaching disks"
 umount $es_mount
 umount $ch_mount
 
+# https://cloud.google.com/sdk/gcloud/reference/compute/instances/detach-disk
+gcloud compute instances detach-disk $(hostname) --device-name=es
+gcloud compute instances detach-disk $(hostname) --device-name=ch
+
 # create disk snapshots
 # https://cloud.google.com/sdk/gcloud/reference/compute/disks/snapshot
-gcloud compute disks snapshot ${ES_DISK} ${CH_DISK} --snapshot-names snap-${ES_DISK},snap-${CH_DISK} --zone ${GC_ZONE}
+# gcloud compute disks snapshot ${ES_DISK} ${CH_DISK} --snapshot-names snap-${ES_DISK},snap-${CH_DISK} --zone ${GC_ZONE}
 
-# copy disks to correct zones
+echo "---> Creating disk images."
+gcloud compute images create ${ES_DISK}-image --source-disk=${ES_DISK} --source-disk-zone=${GC_ZONE} &
+gcloud compute images create ${CH_DISK}-image --source-disk=${CH_DISK} --source-disk-zone=${GC_ZONE} &
+
+wait
+echo "---> GOS preparation complete."
 
 # shutdown machine
