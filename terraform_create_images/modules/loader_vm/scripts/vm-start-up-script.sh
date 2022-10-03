@@ -214,10 +214,6 @@ umount $ch_mount
 gcloud compute instances detach-disk $(hostname) --device-name=${CH_DEVICE} --zone=${GC_ZONE}
 gcloud compute instances detach-disk $(hostname) --device-name=${ES_DEVICE} --zone=${GC_ZONE}
 
-# create disk snapshots
-# https://cloud.google.com/sdk/gcloud/reference/compute/disks/snapshot
-# gcloud compute disks snapshot ${ES_DISK} ${CH_DISK} --snapshot-names snap-${ES_DISK},snap-${CH_DISK} --zone ${GC_ZONE}
-
 echo "---> Creating disk images."
 gcloud compute images create ${ES_DISK}-image --source-disk=${ES_DISK} --source-disk-zone=${GC_ZONE} &
 gcloud compute images create ${CH_DISK}-image --source-disk=${CH_DISK} --source-disk-zone=${GC_ZONE} &
