@@ -211,8 +211,8 @@ umount $es_mount
 umount $ch_mount
 
 # https://cloud.google.com/sdk/gcloud/reference/compute/instances/detach-disk
-gcloud compute instances detach-disk $(hostname) --device-name=es --zone=${GC_ZONE}
-gcloud compute instances detach-disk $(hostname) --device-name=ch --zone=${GC_ZONE}
+gcloud compute instances detach-disk $(hostname) --device-name=${CH_DEVICE} --zone=${GC_ZONE}
+gcloud compute instances detach-disk $(hostname) --device-name=${ES_DEVICE} --zone=${GC_ZONE}
 
 # create disk snapshots
 # https://cloud.google.com/sdk/gcloud/reference/compute/disks/snapshot

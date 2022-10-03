@@ -184,6 +184,8 @@ done
 } &
 wait
 
+echo "All data loaded."
+
 ## Drop intermediate tables
 for t in "${intermediateTables[@]}"; do
   table="${t}_log"
