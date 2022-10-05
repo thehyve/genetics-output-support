@@ -68,6 +68,6 @@ variable "config_vm_pos_boot_disk_size" {
 variable "config_vm_pos_machine_type" {
   description = "Machine type for POS vm"
   type        = string
-  # 16 CPU, 64GB ram
-  default = "e2-standard-16"
+  # 16 CPU, 128GB ram
+  default = "e2-highmem-16"
 }

@@ -19,12 +19,12 @@ echo "---> Calculating RAM allocations"
 # take second column of second line for ram installed
 RAM=$(free -g | awk 'FNR == 2 {print $2}')
 ES_RAM_DENOMINATOR=6
-CH_RAM_DENOMINATOR=2
-ES_RAM=$(expr $RAM / $ES_RAM_DENOMINATOR)
-CH_RAM=$(expr $RAM / $CH_RAM_DENOMINATOR)
+CH_RAM_DENOMINATOR=3
+ES_RAM=$(($RAM / $ES_RAM_DENOMINATOR))
+CH_RAM=$((2 * ($RAM / $CH_RAM_DENOMINATOR)))
 echo "Total RAM available: $RAM"
 echo "ES RAM allocation (1/"$ES_RAM_DENOMINATOR"th): $ES_RAM"
-echo "CH RAM allocation (1/"$CH_RAM_DENOMINATOR"th): $CH_RAM"
+echo "CH RAM allocation (2/"$CH_RAM_DENOMINATOR"rd): $CH_RAM"
 
 # === Locations
 es_mount="/mnt/disks/es"
