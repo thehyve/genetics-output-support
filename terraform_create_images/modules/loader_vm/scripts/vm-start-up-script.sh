@@ -196,7 +196,7 @@ sleep 15
 
 echo "---> Starting data loading"
 cd $scripts
-time bash ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
+time bash ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET} 2>&1 | tee -a "$ch_mount/loading_log.txt"
 
 echo "---> Data loading complete"
 
