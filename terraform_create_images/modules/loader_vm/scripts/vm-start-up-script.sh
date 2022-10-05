@@ -170,7 +170,7 @@ docker run -d \
   --name clickhouse \
   --mount type=bind,source=$ch_serv,target=/var/lib/clickhouse \
   --mount type=bind,source=$ch_conf,target=/etc/clickhouse-server/config.d \
-  --mount type=bind,source=$ch_user,target=/etc/clickhouse-server/user.d \
+  --mount type=bind,source=$ch_user,target=/etc/clickhouse-server/users.d \
   --ulimit nofile=262144:262144 \
   clickhouse/clickhouse-server:${CH_VERSION}
 
