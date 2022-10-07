@@ -93,6 +93,17 @@ for idx in studies genes variants; do
 done
 
 ## Load data
+### This is the rate limiting step and at the beginning we can see timeouts when
+### lots of concurrent loading is happening. Load all the d2v2g data in first
+### and then push everything else in behind it.
+{
+  echo "[Clickhouse] Loading d2v2g_scored to log table."
+  load_foreach_parquet "${data_path}/outputs/d2v2g_scored" "ot.d2v2g_scored_log"
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/d2v2g_scored.sql"
+} &
+wait
+echo "[Clickhouse] Done loading final d2v2g_scored to log table."
+
 {
   load_foreach_parquet "${data_path}/outputs/lut/study-index" "ot.studies_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/studies.sql"
@@ -107,11 +118,6 @@ done
   load_foreach_parquet "${data_path}/outputs/lut/variant-index" "ot.variants_log"
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/variants.sql"
   echo "[Clickhouse] Done loading final variant from log table."
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/d2v2g_scored" "ot.d2v2g_scored_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/d2v2g_scored.sql"
-  echo "[Clickhouse] Done loading final d2v2g_scored from log table."
 } &
 {
   load_foreach_parquet "${data_path}/outputs/v2d" "ot.v2d_log"
