@@ -16,4 +16,9 @@
     <max_server_memory_usage>0</max_server_memory_usage>
     <max_server_memory_usage_to_ram_ratio>0.7</max_server_memory_usage_to_ram_ratio>
     <umask>022</umask>
+    <merge_tree>
+        <old_parts_lifetime>10</old_parts_lifetime>
+        <temporary_directories_lifetime>10</temporary_directories_lifetime>
+    </merge_tree>
+
 </clickhouse>
