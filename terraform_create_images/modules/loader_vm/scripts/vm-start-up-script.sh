@@ -15,17 +15,6 @@ echo "ES_DEVICE: ${ES_DEVICE}"
 echo "ES_DISK: ${ES_DISK}"
 echo "ES_VERSION: ${ES_VERSION}"
 
-echo "---> Calculating RAM allocations"
-# take second column of second line for ram installed
-RAM=$(free -g | awk 'FNR == 2 {print $2}')
-ES_RAM_DENOMINATOR=6
-CH_RAM_DENOMINATOR=3
-ES_RAM=$(($RAM / $ES_RAM_DENOMINATOR))
-CH_RAM=$((2 * ($RAM / $CH_RAM_DENOMINATOR)))
-echo "Total RAM available: $RAM"
-echo "ES RAM allocation (1/"$ES_RAM_DENOMINATOR"th): $ES_RAM"
-echo "CH RAM allocation (2/"$CH_RAM_DENOMINATOR"rd): $CH_RAM"
-
 # === Locations
 es_mount="/mnt/disks/es"
 ch_mount="/mnt/disks/ch"
@@ -186,7 +175,6 @@ docker run -d --restart always \
   -e cluster.name=$(hostname) \
   -e network.host=0.0.0.0 \
   -e search.max_open_scroll_context=5000 \
-  -e ES_JAVA_OPTS="-Xms$${ES_RAM}g -Xmx$${ES_RAM}g" \
   -v $es_data:/usr/share/elasticsearch/data \
   -v /var/elasticsearch/log:/var/log/elasticsearch \
   docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
