@@ -24,12 +24,13 @@ load_foreach_parquet() {
   # the table_name name to load into
   local path_prefix=$1
   local table_name=$2
+  local cpu_count=$3
   echo "[Clickhouse] Loading $path_prefix files into table $table_name"
   local q="clickhouse-client -h ${CLICKHOUSE_HOST} --query=\"insert into ${table_name} format Parquet\" "
 
   # Set max-procs to 0 to allow xargs to max out allowed process count.
   ls "${path_prefix}"/part-*.parquet |
-    xargs --max-procs=$(expr $cpu_count / 2) -t -I % \
+    xargs --max-procs=$cpu_count -t -I % \
       bash -c "cat % | ${q}"
   echo "[Clickhouse] Done loading $path_prefix files into table $table_name"
 }
@@ -96,73 +97,14 @@ done
 ### This is the rate limiting step and at the beginning we can see timeouts when
 ### lots of concurrent loading is happening. Load all the d2v2g data in first
 ### and then push everything else in behind it.
-
-echo "[Clickhouse] Loading d2v2g_scored to log table."
-load_foreach_parquet "${data_path}/outputs/d2v2g_scored" "ot.d2v2g_scored_log"
-clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/d2v2g_scored.sql"
-echo "[Clickhouse] Done loading d2v2g_scored."
-
-echo "[Clickhouse] Loading v2g_scored to log table."
-load_foreach_parquet "${data_path}/outputs/v2g_scored" "ot.v2g_scored_log"
-clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_scored.sql"
-echo "Create v2g structure"
-clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_structure.sql"
-echo "[Clickhouse] Done loading v2g_scored and v2g_structure."
-
-load_foreach_parquet "${data_path}/outputs/sa/gwas" "ot.v2d_sa_gwas_log"
-clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_sa_gwas.sql"
-echo "[Clickhouse] Done loading v2d_sa_gwas table."
-
-load_foreach_parquet "${data_path}/outputs/sa/molecular_trait" "ot.v2d_sa_molecular_trait_log"
-clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_sa_molecular_trait.sql"
-echo "[Clickhouse] Done loading v2d_sa_molecular_trait table."
+halfCPU=$(expr $cpu_count / 2)
+quarterCPU=$(expr $cpu_count / 4)
 
 {
-  load_foreach_parquet "${data_path}/outputs/lut/study-index" "ot.studies_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/studies.sql"
-  echo "[Clickhouse] Done loading final studies from log table."
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/lut/overlap-index" "ot.studies_overlap_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/studies_overlap.sql"
-  echo "[Clickhouse] Done loading final studies_overlap from log table."
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/lut/variant-index" "ot.variants_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/variants.sql"
-  echo "[Clickhouse] Done loading final variant from log table."
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/v2d" "ot.v2d_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d.sql"
-  echo "[Clickhouse] Done loading final v2d from log table."
-} &
-
-{
-  load_foreach_parquet "${data_path}/outputs/v2d_coloc" "ot.v2d_coloc_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_coloc.sql"
-  echo "[Clickhouse] Done loading final v2d_coloc from log table."
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/v2d_credset" "ot.v2d_credset_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_credset.sql"
-  echo "[Clickhouse] Done loading final v2d_credset from log table."
-} &
-
-{
-  load_foreach_parquet "${data_path}/outputs/l2g" "ot.l2g_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/l2g.sql"
-  echo "[Clickhouse] Done loading final l2g from log table."
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/manhattan" "ot.manhattan_log"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/manhattan.sql"
-  echo "[Clickhouse] Done loading final manhattan from log table."
-} &
-{
-  echo "Load gene index"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/genes.sql"
-  load_foreach_parquet "${data_path}/outputs/lut/genes-index" "ot.genes"
+  echo "[Clickhouse] Loading d2v2g_scored to log table."
+  load_foreach_parquet "${data_path}/outputs/d2v2g_scored" "ot.d2v2g_scored_log" $halfCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/d2v2g_scored.sql"
+  echo "[Clickhouse] Done loading d2v2g_scored."
 } &
 {
   echo "[Elasticsearch] load studies data"
@@ -185,6 +127,69 @@ echo "[Clickhouse] Done loading v2d_sa_molecular_trait table."
     "${data_path}/outputs/search/variant" \
     variants \
     "${SCRIPT_DIR}/index_settings_variants.json"
+} &
+wait
+
+echo "[Clickhouse] Loading v2g_scored to log table."
+load_foreach_parquet "${data_path}/outputs/v2g_scored" "ot.v2g_scored_log" $halfCPU
+clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_scored.sql"
+echo "Create v2g structure"
+clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_structure.sql"
+echo "[Clickhouse] Done loading v2g_scored and v2g_structure."
+
+load_foreach_parquet "${data_path}/outputs/sa/gwas" "ot.v2d_sa_gwas_log" $halfCPU
+clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_sa_gwas.sql"
+echo "[Clickhouse] Done loading v2d_sa_gwas table."
+
+load_foreach_parquet "${data_path}/outputs/sa/molecular_trait" "ot.v2d_sa_molecular_trait_log" $halfCPU
+clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_sa_molecular_trait.sql"
+echo "[Clickhouse] Done loading v2d_sa_molecular_trait table."
+
+{
+  load_foreach_parquet "${data_path}/outputs/lut/study-index" "ot.studies_log" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/studies.sql"
+  echo "[Clickhouse] Done loading final studies from log table."
+} &
+{
+  load_foreach_parquet "${data_path}/outputs/lut/overlap-index" "ot.studies_overlap_log" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/studies_overlap.sql"
+  echo "[Clickhouse] Done loading final studies_overlap from log table."
+} &
+{
+  load_foreach_parquet "${data_path}/outputs/lut/variant-index" "ot.variants_log" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/variants.sql"
+  echo "[Clickhouse] Done loading final variant from log table."
+} &
+{
+  load_foreach_parquet "${data_path}/outputs/v2d" "ot.v2d_log" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d.sql"
+  echo "[Clickhouse] Done loading final v2d from log table."
+} &
+{
+  load_foreach_parquet "${data_path}/outputs/v2d_coloc" "ot.v2d_coloc_log" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_coloc.sql"
+  echo "[Clickhouse] Done loading final v2d_coloc from log table."
+} &
+{
+  load_foreach_parquet "${data_path}/outputs/v2d_credset" "ot.v2d_credset_log" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_credset.sql"
+  echo "[Clickhouse] Done loading final v2d_credset from log table."
+} &
+
+{
+  load_foreach_parquet "${data_path}/outputs/l2g" "ot.l2g_log" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/l2g.sql"
+  echo "[Clickhouse] Done loading final l2g from log table."
+} &
+{
+  load_foreach_parquet "${data_path}/outputs/manhattan" "ot.manhattan_log" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/manhattan.sql"
+  echo "[Clickhouse] Done loading final manhattan from log table."
+} &
+{
+  echo "Load gene index"
+  load_foreach_parquet "${data_path}/outputs/lut/genes-index" "ot.genes" $quarterCPU
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/genes.sql"
 } &
 wait
 
