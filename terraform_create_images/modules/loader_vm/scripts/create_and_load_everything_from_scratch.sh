@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # CURRENTLY, IN ORDER TO BUILD SOME TABLES WE NEED A HIGHMEM MACHINE
+set -e
 
 export ES_HOST="${ES_HOST:-localhost}"
 export CLICKHOUSE_HOST="${CLICKHOUSE_HOST:-localhost}"
@@ -24,13 +25,13 @@ load_foreach_parquet() {
   # the table_name name to load into
   local path_prefix=$1
   local table_name=$2
-  local cpu_count=$3
+  local proc_count=$3
   echo "[Clickhouse] Loading $path_prefix files into table $table_name"
   local q="clickhouse-client -h ${CLICKHOUSE_HOST} --query=\"insert into ${table_name} format Parquet\" "
 
   # Set max-procs to 0 to allow xargs to max out allowed process count.
   ls "${path_prefix}"/part-*.parquet |
-    xargs --max-procs=$cpu_count -t -I % \
+    xargs --max-procs=$proc_count -t -I % \
       bash -c "cat % | ${q}"
   echo "[Clickhouse] Done loading $path_prefix files into table $table_name"
 }
