@@ -154,6 +154,7 @@ echo "[Clickhouse] Done loading v2d_sa_molecular_trait table."
 {
   load_foreach_parquet "${data_path}/outputs/lut/variant-index" "ot.variants_log" $quarterCPU
 } &
+wait
 {
   load_foreach_parquet "${data_path}/outputs/v2d" "ot.v2d_log" $quarterCPU
 } &
@@ -163,7 +164,7 @@ echo "[Clickhouse] Done loading v2d_sa_molecular_trait table."
 {
   load_foreach_parquet "${data_path}/outputs/v2d_credset" "ot.v2d_credset_log" $quarterCPU
 } &
-
+wait
 {
   load_foreach_parquet "${data_path}/outputs/l2g" "ot.l2g_log" $quarterCPU
 } &
