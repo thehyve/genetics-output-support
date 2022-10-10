@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # CURRENTLY, IN ORDER TO BUILD SOME TABLES WE NEED A HIGHMEM MACHINE
-set -e
 
 export ES_HOST="${ES_HOST:-localhost}"
 export CLICKHOUSE_HOST="${CLICKHOUSE_HOST:-localhost}"
@@ -72,14 +71,14 @@ intermediateTables=(
   studies_overlap
   variants
   v2d
-  v2g_scored
-  d2v2g_scored
   v2d_coloc
   v2d_credset
   v2d_sa_gwas
   v2d_sa_molecular_trait
   l2g
   manhattan
+  v2g_scored
+  d2v2g_scored
 )
 ## Create intermediary tables
 for t in "${intermediateTables[@]}"; do
@@ -102,10 +101,18 @@ halfCPU=$(expr $cpu_count / 2)
 quarterCPU=$(expr $cpu_count / 4)
 
 {
+  echo "--- D2V2G SCORED START ---"
+
   echo "[Clickhouse] Loading d2v2g_scored to log table."
   load_foreach_parquet "${data_path}/outputs/d2v2g_scored" "ot.d2v2g_scored_log" $halfCPU
+
   clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/d2v2g_scored.sql"
   echo "[Clickhouse] Done loading d2v2g_scored."
+
+  echo "Deleting intermediate table: d2v2g_scored_log"
+  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n -q " drop table ot.d2v2g_scored_log"
+
+  echo "--- D2V2G SCORED END ---"
 } &
 {
   echo "[Elasticsearch] load studies data"
@@ -131,12 +138,16 @@ quarterCPU=$(expr $cpu_count / 4)
 } &
 wait
 
+echo "--- V2G SCORED START ---"
 echo "[Clickhouse] Loading v2g_scored to log table."
 load_foreach_parquet "${data_path}/outputs/v2g_scored" "ot.v2g_scored_log" $halfCPU
 clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_scored.sql"
 echo "Create v2g structure"
 clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_structure.sql"
 echo "[Clickhouse] Done loading v2g_scored and v2g_structure."
+echo "Deleting intermediate table: v2g_scored_log"
+clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n -q " drop table ot.v2g_scored_log"
+echo "--- V2G SCORED END ---"
 
 load_foreach_parquet "${data_path}/outputs/sa/gwas" "ot.v2d_sa_gwas_log" $halfCPU
 clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_sa_gwas.sql"
