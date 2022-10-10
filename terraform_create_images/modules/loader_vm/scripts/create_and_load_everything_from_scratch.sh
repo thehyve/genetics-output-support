@@ -146,38 +146,17 @@ load_foreach_parquet "${data_path}/outputs/sa/molecular_trait" "ot.v2d_sa_molecu
 clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_sa_molecular_trait.sql"
 echo "[Clickhouse] Done loading v2d_sa_molecular_trait table."
 
-{
-  load_foreach_parquet "${data_path}/outputs/lut/study-index" "ot.studies_log" $quarterCPU
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/lut/overlap-index" "ot.studies_overlap_log" $quarterCPU
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/lut/variant-index" "ot.variants_log" $quarterCPU
-} &
-wait
-{
-  load_foreach_parquet "${data_path}/outputs/v2d" "ot.v2d_log" $quarterCPU
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/v2d_coloc" "ot.v2d_coloc_log" $quarterCPU
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/v2d_credset" "ot.v2d_credset_log" $quarterCPU
-} &
-wait
-{
-  load_foreach_parquet "${data_path}/outputs/l2g" "ot.l2g_log" $quarterCPU
-} &
-{
-  load_foreach_parquet "${data_path}/outputs/manhattan" "ot.manhattan_log" $quarterCPU
-} &
-{
-  echo "Load gene index"
-  clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/genes.sql"
-  load_foreach_parquet "${data_path}/outputs/lut/genes-index" "ot.genes" $quarterCPU
-} &
-wait
+load_foreach_parquet "${data_path}/outputs/lut/study-index" "ot.studies_log" $halfCPU
+load_foreach_parquet "${data_path}/outputs/lut/overlap-index" "ot.studies_overlap_log" $halfCPU
+load_foreach_parquet "${data_path}/outputs/lut/variant-index" "ot.variants_log" $halfCPU
+load_foreach_parquet "${data_path}/outputs/v2d" "ot.v2d_log" $halfCPU
+load_foreach_parquet "${data_path}/outputs/v2d_coloc" "ot.v2d_coloc_log" $halfCPU
+load_foreach_parquet "${data_path}/outputs/v2d_credset" "ot.v2d_credset_log" $halfCPU
+load_foreach_parquet "${data_path}/outputs/l2g" "ot.l2g_log" $halfCPU
+load_foreach_parquet "${data_path}/outputs/manhattan" "ot.manhattan_log" $halfCPU
+echo "Load gene index"
+clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/genes.sql"
+load_foreach_parquet "${data_path}/outputs/lut/genes-index" "ot.genes" $halfCPU
 
 clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2d_coloc.sql"
 echo "[Clickhouse] Done loading final v2d_coloc from log table."

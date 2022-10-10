@@ -1,6 +1,3 @@
-// Open Targets Platform Infrastructure
-// Author: Cinzia Malangone <cinzia.malangone@gmail.com>
-
 // --- Provider Configuration --- //
 terraform {
   required_providers {
