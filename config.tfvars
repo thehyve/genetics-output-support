@@ -6,7 +6,7 @@ config_branch   = "main"
 
 # Variable for creating IMAGES : ElasticSearch and Clickhouse
 config_direct_json = "gs://genetics-portal-dev-data/21.10"
-config_gs_etl      = "gs://genetics-portal-dev-data/22.09.0/outputs"
+config_gs_etl      = "gs://genetics-portal-dev-data/22.09.1/outputs"
 
 # Project dev info
 config_project_id         = "open-targets-genetics-dev"

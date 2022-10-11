@@ -19,7 +19,7 @@ resource "google_compute_disk" "ch_disk" {
   name = "${var.disk_clickhouse_name}-${random_string.random.result}"
   type = local.disk_type
   zone = var.vm_default_zone
-  size = 250
+  size = 500
   labels = {
     datatype = "clickhouse"
   }
@@ -115,7 +115,8 @@ resource "google_project_iam_member" "gos_vm_role" {
     "roles/storage.admin",
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
-    "roles/compute.admin"
+    "roles/compute.admin",
+    "roles/iam.serviceAccountUser"
   ])
   role    = each.key
   member  = "serviceAccount:${google_service_account.vm_service_account.email}"
