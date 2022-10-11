@@ -15,17 +15,6 @@ echo "ES_DEVICE: ${ES_DEVICE}"
 echo "ES_DISK: ${ES_DISK}"
 echo "ES_VERSION: ${ES_VERSION}"
 
-echo "---> Calculating RAM allocations"
-# take second column of second line for ram installed
-RAM=$(free -g | awk 'FNR == 2 {print $2}')
-ES_RAM_DENOMINATOR=6
-CH_RAM_DENOMINATOR=2
-ES_RAM=$(expr $RAM / $ES_RAM_DENOMINATOR)
-CH_RAM=$(expr $RAM / $CH_RAM_DENOMINATOR)
-echo "Total RAM available: $RAM"
-echo "ES RAM allocation (1/"$ES_RAM_DENOMINATOR"th): $ES_RAM"
-echo "CH RAM allocation (1/"$CH_RAM_DENOMINATOR"th): $CH_RAM"
-
 # === Locations
 es_mount="/mnt/disks/es"
 ch_mount="/mnt/disks/ch"
@@ -170,11 +159,10 @@ docker run -d \
   --name clickhouse \
   --mount type=bind,source=$ch_serv,target=/var/lib/clickhouse \
   --mount type=bind,source=$ch_conf,target=/etc/clickhouse-server/config.d \
-  --mount type=bind,source=$ch_user,target=/etc/clickhouse-server/user.d \
+  --mount type=bind,source=$ch_user,target=/etc/clickhouse-server/users.d \
   --ulimit nofile=262144:262144 \
   clickhouse/clickhouse-server:${CH_VERSION}
 
-start Elasticsearch
 echo "---> Staring Elasticsearch Docker image"
 docker run -d --restart always \
   --name elasticsearch \
@@ -187,7 +175,6 @@ docker run -d --restart always \
   -e cluster.name=$(hostname) \
   -e network.host=0.0.0.0 \
   -e search.max_open_scroll_context=5000 \
-  -e ES_JAVA_OPTS="-Xms$${ES_RAM}g -Xmx$${ES_RAM}g" \
   -v $es_data:/usr/share/elasticsearch/data \
   -v /var/elasticsearch/log:/var/log/elasticsearch \
   docker.elastic.co/elasticsearch/elasticsearch-oss:${ES_VERSION}
@@ -197,7 +184,7 @@ sleep 15
 
 echo "---> Starting data loading"
 cd $scripts
-time bash ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET}
+time bash ./create_and_load_everything_from_scratch.sh ${GS_ETL_DATASET} 2>&1 | tee -a "$ch_mount/loading_log.txt"
 
 echo "---> Data loading complete"
 
@@ -211,10 +198,15 @@ echo "---> Detaching disks"
 umount $es_mount
 umount $ch_mount
 
-# create disk snapshots
-# https://cloud.google.com/sdk/gcloud/reference/compute/disks/snapshot
-gcloud compute disks snapshot ${ES_DISK} ${CH_DISK} --snapshot-names snap-${ES_DISK},snap-${CH_DISK} --zone ${GC_ZONE}
+# https://cloud.google.com/sdk/gcloud/reference/compute/instances/detach-disk
+gcloud compute instances detach-disk $(hostname) --device-name=${CH_DEVICE} --zone=${GC_ZONE}
+gcloud compute instances detach-disk $(hostname) --device-name=${ES_DEVICE} --zone=${GC_ZONE}
 
-# copy disks to correct zones
+echo "---> Creating disk images."
+gcloud compute images create ${ES_DISK}-image --source-disk=${ES_DISK} --source-disk-zone=${GC_ZONE} &
+gcloud compute images create ${CH_DISK}-image --source-disk=${CH_DISK} --source-disk-zone=${GC_ZONE} &
+
+wait
+echo "---> GOS preparation complete."
 
 # shutdown machine

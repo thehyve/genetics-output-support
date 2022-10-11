@@ -3,10 +3,13 @@
 Genetics Output Support (POS) provides tools to prepare the Genetics data for public distribution. Distribution is either part of the public facing web portal, or through GCP Bigquery.
 
 ### Requirement
+
 - Terraform
 - Jq
 - Make
+
 ### How to run the different steps
+
 Simply run the following command:
 
 ```make```
@@ -28,7 +31,7 @@ Variables are stored in the **config.tfvars**. Typically these are the only vari
 
 The current POS steps are:
 
-```make disk``` generates two GCP disk [snapshots](https://cloud.google.com/compute/docs/disks/snapshots): one for Elasticsearch and one for Clickhouse. These can be subsequently mounted as disks to VMs running the necessary database.
+```make disk``` generates two GCP disk [images](https://cloud.google.com/sdk/gcloud/reference/compute/images/create): one for Elasticsearch and one for Clickhouse. These can be subsequently mounted as disks to VMs running the necessary database.
 
 ```make bigquerydev``` it generates a bigquery dataset in eu-dev
 
@@ -38,7 +41,19 @@ The current POS steps are:
 
 ```make syncgs``` Synch the data from the google storage pre-release to production (internal use)
 
+## Create disk images
+
+- Running `make disk` will deploy the resources to create the resources for an API/UI release. To see the logs while this process completes run:
+
+```
+gcloud --project=open-targets-genetics-dev compute ssh gos-vm-support-vm-9zatib6c \
+-- sudo journalctl -n 500 -f -u google-startup-scripts.service 
+```
+
+Replacing the name of the VM with the value printed to terminal under `pos_support_vm_name`
+
 # Copyright
+
 Copyright 2018-2021 Open Targets
 
 Bristol Myers Squibb <br>
@@ -52,7 +67,7 @@ you may not use this file except in compliance with the License.
 
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   <http://www.apache.org/licenses/LICENSE-2.0>
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -60,4 +75,4 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-https://github.com/opentargets/platform-output-support.git
+<https://github.com/opentargets/platform-output-support.git>
