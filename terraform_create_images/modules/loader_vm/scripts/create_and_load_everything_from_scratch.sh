@@ -58,13 +58,13 @@ load_json_for_elastic() {
   local index_file=$3
   echo "[Elasticsearch] Loading $data_path into $index"
   for f in ${data_path}/part-*.json; do
-    cat $f | esbulk -0 -server localhost:9200 -index $index -size 2000 -w $(expr $cpu_count / 2)
+    cat $f | esbulk -0 -server ${ES_HOST}:9200 -index $index -size 2000 -w $(expr $cpu_count / 2)
   done
 }
 
 ## Database setup
 echo "Initialising database..."
-clickhouse-client --query="drop database if exists ot;"
+clickhouse-client -h ${CLICKHOUSE_HOST} --query="drop database if exists ot;"
 
 intermediateTables=(
   studies
@@ -83,14 +83,14 @@ intermediateTables=(
 ## Create intermediary tables
 for t in "${intermediateTables[@]}"; do
   echo "[Clickhouse] Creating intermediary table: ${t}_log"
-  clickhouse-client -m -n <"${SCRIPT_DIR}/${t}_log.sql"
+  clickhouse-client -h ${CLICKHOUSE_HOST} -m -n <"${SCRIPT_DIR}/${t}_log.sql"
 done
 
 echo "[Elasticsearch] Create indexes"
 for idx in studies genes variants; do
-  curl -XDELETE localhost:9200/$idx &>/dev/null
-  echo "[Elasticsearch] Create index localhost:9200/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
-  curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json localhost:9200/$idx
+  curl -XDELETE ${ES_HOST}:9200/$idx &>/dev/null
+  echo "[Elasticsearch] Create index ${ES_HOST}:9200/$idx with settings file $SCRIPT_DIR/index_settings_$idx.json"
+  curl -XPUT -H 'Content-Type: application/json' --data @$SCRIPT_DIR/index_settings_$idx.json ${ES_HOST}:9200/$idx
 done
 
 ## Load data
