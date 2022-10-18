@@ -131,7 +131,7 @@ quarterCPU=$(expr $cpu_count / 4)
     "${SCRIPT_DIR}/index_settings_genes.json"
 } &
 {
-  echo "[Elasticsearch] load genes data"
+  echo "[Elasticsearch] load variants data"
   load_json_for_elastic \
     "${data_path}/search/variant" \
     variants \
