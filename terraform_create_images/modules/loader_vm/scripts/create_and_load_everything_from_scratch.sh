@@ -5,6 +5,8 @@
 export ES_HOST="${ES_HOST:-localhost}"
 export CLICKHOUSE_HOST="${CLICKHOUSE_HOST:-localhost}"
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+export data_path="${DATA_PATH:-/tmp/data}"
+export cpu_count="${CPU_COUNT:-$(nproc --all)}"
 
 if [ $# -ne 1 ]; then
   echo "Recreates ot database and loads data."
@@ -12,8 +14,6 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 GS_DATA="${1}"
-data_path="/tmp/data"
-cpu_count=$(nproc --all)
 echo "${cpu_count} CPUs available for parallelisation."
 
 gsutil -m cp -r $GS_DATA $data_path &>/dev/null
