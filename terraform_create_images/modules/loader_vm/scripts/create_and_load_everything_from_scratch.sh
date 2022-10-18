@@ -77,8 +77,6 @@ intermediateTables=(
   v2d_sa_molecular_trait
   l2g
   manhattan
-  v2g_scored
-  d2v2g_scored
 )
 ## Create intermediary tables
 for t in "${intermediateTables[@]}"; do
@@ -102,6 +100,9 @@ quarterCPU=$(expr $cpu_count / 4)
 
 {
   echo "--- D2V2G SCORED START ---"
+
+  echo "[Clickhouse] Creating intermediary table: d2v2g_scored_log"
+  clickhouse-client -h ${CLICKHOUSE_HOST} -m -n <"${SCRIPT_DIR}/clickhouse/sql/d2v2g_scored_log.sql"
 
   echo "[Clickhouse] Loading d2v2g_scored to log table."
   load_foreach_parquet "${data_path}/outputs/d2v2g_scored" "ot.d2v2g_scored_log" $halfCPU
@@ -139,6 +140,8 @@ quarterCPU=$(expr $cpu_count / 4)
 wait
 
 echo "--- V2G SCORED START ---"
+echo "[Clickhouse] Creating intermediary table: v2g_scored_log"
+clickhouse-client -h ${CLICKHOUSE_HOST} -m -n <"${SCRIPT_DIR}/clickhouse/sql/v2g_scored_log.sql"
 echo "[Clickhouse] Loading v2g_scored to log table."
 load_foreach_parquet "${data_path}/outputs/v2g_scored" "ot.v2g_scored_log" $halfCPU
 clickhouse-client -h "${CLICKHOUSE_HOST}" -m -n <"${SCRIPT_DIR}/v2g_scored.sql"
