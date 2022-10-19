@@ -96,7 +96,6 @@ done
 ### lots of concurrent loading is happening. Load all the d2v2g data in first
 ### and then push everything else in behind it.
 halfCPU=$(expr $cpu_count / 2)
-quarterCPU=$(expr $cpu_count / 4)
 
 {
   echo "--- D2V2G SCORED START ---"
