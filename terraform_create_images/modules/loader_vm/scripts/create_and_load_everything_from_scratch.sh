@@ -55,7 +55,6 @@ load_foreach_parquet() {
 load_json_for_elastic() {
   local data_path=$1
   local index=$2
-  local index_file=$3
   echo "[Elasticsearch] Loading $data_path into $index"
   for f in ${data_path}/part-*.json; do
     cat $f | esbulk -0 -server ${ES_HOST}:9200 -index $index -size 2000 -w $(expr $cpu_count / 2)
@@ -116,25 +115,15 @@ halfCPU=$(expr $cpu_count / 2)
 } &
 {
   echo "[Elasticsearch] load studies data"
-  load_json_for_elastic \
-    "${data_path}/search/study" \
-    studies \
-    "${SCRIPT_DIR}/index_settings_studies.json"
-
+  load_json_for_elastic "${data_path}/search/study" studies
 } &
 {
   echo "[Elasticsearch] load genes data"
-  load_json_for_elastic \
-    "${data_path}/search/gene" \
-    genes \
-    "${SCRIPT_DIR}/index_settings_genes.json"
+  load_json_for_elastic "${data_path}/search/gene" genes
 } &
 {
   echo "[Elasticsearch] load variants data"
-  load_json_for_elastic \
-    "${data_path}/search/variant" \
-    variants \
-    "${SCRIPT_DIR}/index_settings_variants.json"
+  load_json_for_elastic "${data_path}/search/variant" variants
 } &
 wait
 
