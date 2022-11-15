@@ -9,7 +9,7 @@ create table if not exists ot.studies_log (
   has_sumstats UInt8,
   trait_reported String,
   source Nullable(String),
-  trait_efos Array(String) default [],
+  trait_efos Array(Nullable(String)) default [],
   ancestry_initial Array(String) default [],
   ancestry_replication Array(String) default [],
   n_initial Nullable(UInt32),
